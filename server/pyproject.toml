@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cielo-mcp"
+version = "0.1.0"
+description = "MCP server for cielo-bench: the benchmark's own tools, with citations and honest failures, for any MCP client."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+authors = [{ name = "Valentina Vanegas" }]
+# The benchmark core (`cielo_bench`, the repository root) is required but deliberately not listed:
+# it is not on PyPI, and listing it would let pip resolve that name from a public index
+# (dependency confusion). Install it first: `pip install -e .` from the repository root.
+dependencies = [
+  "mcp==2.3.0",  # official MCP Python SDK; MCPServer is the 2.x name of FastMCP (ADR-0007)
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10"]
+
+[project.scripts]
+cielo-mcp = "cielo_mcp.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["cielo_mcp*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

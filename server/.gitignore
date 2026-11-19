@@ -1,0 +1,3 @@
+# build artifacts of `pip install -e ./server`
+*.egg-info/
+build/

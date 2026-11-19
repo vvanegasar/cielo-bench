@@ -1,0 +1,22 @@
+{
+  "file": "distributor-v1.sqlite",
+  "db_version": "v1",
+  "generator_version": "1",
+  "seed": "cielo-bench/tabular/v1",
+  "as_of_date": "2026-09-30",
+  "bytes": 3477504,
+  "file_sha256": "88ae32d9914bf27cb775a3bdda8d2f1cc679c09624d9088886ef724a8e24448d",
+  "content_sha256": "6bf808939f023fe3f45e36f24f9ac5248434980c3dd1ced09a4fd293ebd6a523",
+  "sqlite_version": "3.50.4",
+  "row_counts": {
+    "customers": 240,
+    "products": 144,
+    "orders": 8538,
+    "order_items": 33523,
+    "invoices": 8293,
+    "payments": 7915,
+    "inventory": 418,
+    "snapshot_info": 4
+  },
+  "note": "Synthetic data: the company, customers and products are fictional. file_sha256 depends on the SQLite version that wrote the file; content_sha256 does not."
+}

@@ -1,0 +1,39 @@
+# secrets
+.env
+.env.*
+!.env.example
+.dev.vars
+
+# node / workers
+node_modules/
+dist/
+.wrangler/
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+*.egg-info/
+
+# eval outputs. Results policy (see README, "Results policy"): simulated runs are not versioned (CI and
+# `cielo-bench reproduce --simulated` regenerate them). Real runs keep REPORT.md, summary.json,
+# manifest.json, figures/ and trials.jsonl.gz (`cielo-bench pack`); the rest stays local.
+evals/runs/
+results/*-simulated/
+results/*/trials.jsonl
+results/*/scores.jsonl
+results/*/cache/
+
+# os
+.DS_Store
+
+# internal working notes (kept local, not part of the public repo)
+CLAUDE.md
+docs/STATUS.md
+docs/_README_draft.md
+docs/_README.es_draft.md

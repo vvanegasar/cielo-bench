@@ -1,0 +1,93 @@
+# CI for cielo-bench. No secrets and no model API calls: every run uses simulated agents
+# and the committed upstream fixtures (cache only). Real-model runs are manual and local.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  MPLBACKEND: Agg
+  # Live upstream responses would go here; CI never makes live requests.
+  CIELO_CACHE_DIR: ${{ github.workspace }}/.ci-cache
+
+jobs:
+  benchmark:
+    name: benchmark · Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install
+        run: python -m pip install -e ".[dev]"
+      - name: Lint and format
+        run: |
+          ruff check .
+          ruff format --check . --extend-exclude server   # server/ keeps its own formatting
+      - name: Tests with coverage (offline)
+        run: python -m pytest --cov --cov-report=term --cov-report=json:build/coverage.json --junitxml=build/junit.xml
+      - name: Verify golden sets and fixtures (every registered domain)
+        run: |
+          for domain in $(python -c "from cielo_bench.domains import AVAILABLE; print(' '.join(AVAILABLE))"); do
+            cielo-bench --domain "$domain" verify
+          done
+      - name: Reproduce with simulated agents (every registered domain)
+        run: |
+          for domain in $(python -c "from cielo_bench.domains import AVAILABLE; print(' '.join(AVAILABLE))"); do
+            cielo-bench --domain "$domain" reproduce --simulated --quick --quiet --out "$RUNNER_TEMP/reproduce-$domain"
+          done
+      - name: Generated README tables are up to date
+        if: matrix.python-version == '3.12'
+        run: |
+          files=""
+          for f in README.md README.es.md; do
+            if [ -f "$f" ]; then files="$files --file $f"; fi
+          done
+          cielo-bench docs --update-readme-tables --check $files
+      - name: Test-suite table in the job summary
+        if: always() && matrix.python-version == '3.12'
+        run: |
+          printf '## Test suite\n\n<!-- cielo-bench:begin tests -->\n<!-- cielo-bench:end tests -->\n' > "$RUNNER_TEMP/tests.md"
+          cielo-bench docs --update-readme-tables --file "$RUNNER_TEMP/tests.md" \
+            --junit build/junit.xml --coverage build/coverage.json
+          cat "$RUNNER_TEMP/tests.md" >> "$GITHUB_STEP_SUMMARY"
+
+  mcp-server:
+    name: MCP server · Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install the core, then the server
+        run: |
+          python -m pip install -e .
+          python -m pip install -e "server[dev]"
+      - name: Server tests (cache only, no network)
+        working-directory: server
+        run: python -m pytest

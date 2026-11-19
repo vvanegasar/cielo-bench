@@ -1,0 +1,89 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cielo-bench"
+version = "1.0.0"
+description = "Check or agree? A benchmark of whether tool-using AI agents verify a user's claim or agree with it, judged against verifiable ground truth (NASA/JPL Horizons) instead of an LLM judge."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "Valentina Vanegas Aristizábal" }]
+keywords = [
+  "llm", "agents", "sycophancy", "benchmark", "evaluation", "tool-use", "mcp",
+  "ground-truth", "astronomy", "jpl-horizons",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Developers",
+  "Natural Language :: English",
+  "Natural Language :: Spanish",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Scientific/Engineering :: Astronomy",
+]
+# Kept deliberately small. Model APIs are called over plain HTTP (httpx) so the
+# raw request and response of every trial can be logged as-is (see ADR-0005).
+dependencies = [
+  "httpx>=0.28,<1",
+  "certifi>=2024.8.30",  # CA bundle (already an httpx dependency); see cielo_bench/net.py
+  "matplotlib>=3.9,<4",
+]
+
+[project.urls]
+Homepage = "https://github.com/vvanegasar/cielo-bench"
+Repository = "https://github.com/vvanegasar/cielo-bench"
+Issues = "https://github.com/vvanegasar/cielo-bench/issues"
+Documentation = "https://github.com/vvanegasar/cielo-bench/tree/main/docs"
+Changelog = "https://github.com/vvanegasar/cielo-bench/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "pytest-cov>=5", "ruff>=0.8"]
+
+[project.scripts]
+cielo-bench = "cielo_bench.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["evals"]
+include = ["cielo_bench*"]
+
+[tool.pytest.ini_options]
+testpaths = ["evals/tests"]
+pythonpath = ["evals"]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["cielo_bench"]
+branch = true
+# Domains and the MCP server built by other contributors carry their own tests and targets.
+omit = ["*/cielo_bench/domains/tabular/*", "*/cielo_bench/__main__.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 85
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+src = ["evals", "server"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003"]  # accented and typographic characters are intentional (ES text)
+
+[tool.ruff.lint.per-file-ignores]
+"evals/tests/*" = ["E501"]
+"evals/cielo_bench/domains/astronomy/build.py" = ["E501"]
+"evals/cielo_bench/domains/astronomy/templates.py" = ["E501"]
+
+[tool.pyright]
+extraPaths = ["evals"]
