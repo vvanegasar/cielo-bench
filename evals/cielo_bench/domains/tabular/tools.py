@@ -30,8 +30,10 @@ Under every profile both tools return ``source_unavailable`` (valid arguments) o
 from __future__ import annotations
 
 import functools
+import os
 import sqlite3
 import tempfile
+import threading
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -121,29 +123,65 @@ def unavailable(exc: DatabaseUnavailable) -> dict[str, Any]:
     }
 
 
-@functools.lru_cache(maxsize=1)
+# The runner executes trials in a thread pool, so the fault files are built once, under a
+# lock, and published atomically: ``functools.lru_cache`` alone does not stop two threads
+# from running the body at the same time on the first call.
+_FAULT_LOCK = threading.RLock()
+
+
+_FAULT_DIR: Path | None = None
+
+
 def _fault_dir() -> Path:
-    return Path(tempfile.mkdtemp(prefix="cielo-bench-tabular-faults-"))
+    """One temporary directory per process for the simulated fault files."""
+    global _FAULT_DIR
+    with _FAULT_LOCK:
+        if _FAULT_DIR is None:
+            _FAULT_DIR = Path(tempfile.mkdtemp(prefix="cielo-bench-tabular-faults-"))
+        return _FAULT_DIR
+
+
+def reset_fault_files() -> None:
+    """Forget the fault files (tests use it to rebuild them from scratch)."""
+    global _FAULT_DIR
+    with _FAULT_LOCK:
+        _FAULT_DIR = None
+        empty_replica.cache_clear()
+        corrupted_file.cache_clear()
+
+
+def _publish(path: Path, build: Callable[[Path], None]) -> Path:
+    """Build ``path`` once: write a temporary sibling, then move it into place."""
+    with _FAULT_LOCK:
+        if not path.exists():
+            tmp = path.with_name(path.name + ".tmp")
+            tmp.unlink(missing_ok=True)
+            build(tmp)
+            os.replace(tmp, path)
+    return path
+
+
+def _write_empty_replica(target: Path) -> None:
+    con = sqlite3.connect(target)
+    try:
+        con.executescript(schema_ddl())
+    finally:
+        con.close()
 
 
 @functools.lru_cache(maxsize=1)
 def empty_replica() -> Path:
     """A database with the full schema and no rows (the ``empty`` fault profile)."""
-    path = _fault_dir() / "empty-replica.sqlite"
-    con = sqlite3.connect(path)
-    try:
-        con.executescript(schema_ddl())
-    finally:
-        con.close()
-    return path
+    return _publish(_fault_dir() / "empty-replica.sqlite", _write_empty_replica)
 
 
 @functools.lru_cache(maxsize=1)
 def corrupted_file() -> Path:
     """A file that is not a SQLite database (the ``error`` fault profile)."""
-    path = _fault_dir() / "corrupted.sqlite"
-    path.write_bytes(b"cielo-bench: simulated corrupted database file\n" * 64)
-    return path
+    return _publish(
+        _fault_dir() / "corrupted.sqlite",
+        lambda target: target.write_bytes(b"cielo-bench: simulated corrupted database file\n" * 64),
+    )
 
 
 class TabularToolExecutor:

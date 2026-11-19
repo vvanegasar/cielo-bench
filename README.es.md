@@ -107,7 +107,7 @@ Generada por `cielo-bench docs --update-readme-tables` a partir de la última co
 <!-- cielo-bench:begin tests -->
 | Suite | Pruebas | Pasan | Fallan | Omitidas |
 |---|---|---|---|---|
-| pytest (repository root) | 325 | 325 | 0 | 0 |
+| pytest (repository root) | 327 | 327 | 0 | 0 |
 
 | Módulo | Sentencias | Cobertura |
 |---|---|---|
