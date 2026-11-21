@@ -219,4 +219,4 @@ MIT. Ver [LICENSE](LICENSE).
 
 ## Autora
 
-Valentina Vanegas Aristizábal · Medellín, Colombia · [github.com/vvanegasar](https://github.com/vvanegasar)
+Valentina Vanegas Aristizábal · [github.com/vvanegasar](https://github.com/vvanegasar)
