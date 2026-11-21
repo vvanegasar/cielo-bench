@@ -1,6 +1,6 @@
 # ADR-0008 — Astronomy tools for v1: Moon phase, angular separation, altitude rate, rise/set azimuth
 
-- Status: Proposed · 2026-11-19 (to be accepted or changed by Valentina Vanegas)
+- Status: Accepted · 2026-11-19 (proposed 2026-11-19; accepted by Valentina Vanegas)
 - Builds on: ADR-0005 (domain-independent harness) and ADR-0007 (Python MCP server). The contribution rules (CONTRIBUTING.md) require an ADR for every new tool.
 
 ## Context

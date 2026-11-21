@@ -1,6 +1,6 @@
 # ADR-0007 — The v1 MCP server is Python over stdio, not TypeScript on Workers
 
-- Status: Proposed · 2026-11-18 (to be accepted or changed by Valentina Vanegas)
+- Status: Accepted · 2026-11-19 (proposed 2026-11-18; accepted by Valentina Vanegas)
 - Supersedes: ADR-0002 for `server/` (the `evals/` part stands). Defers: ADR-0003 (no hosted server in v1). Amends: ADR-0004 (no npm package). Builds on: ADR-0001 and ADR-0005.
 
 ## Context

@@ -1,6 +1,6 @@
 # ADR-0005 — A domain-independent harness, local tool executors, astronomy as domain 1
 
-- Status: Proposed · 2026-11-18 (to be accepted or changed by Valentina Vanegas)
+- Status: Accepted · 2026-11-19 (proposed 2026-11-18; accepted by Valentina Vanegas)
 - Builds on: ADR-0001 (benchmark first). Deviates from: ADR-0002 (provider SDKs), the v0 tool list in `docs/TOOLS.md`, the User-Agent line in `docs/DATA-SOURCES.md`. The change of the MCP server from TypeScript on Workers to Python is recorded in the server's own ADR.
 
 ## Context
