@@ -219,4 +219,4 @@ MIT. See [LICENSE](LICENSE).
 
 ## Author
 
-Valentina Vanegas Aristizábal · [valentina-vanegas.pages.dev](https://valentina-vanegas.pages.dev/work/cielo-bench/) · [github.com/vvanegasar](https://github.com/vvanegasar)
+Valentina Vanegas Aristizábal · [vvanegasar.github.io](https://vvanegasar.github.io/work/cielo-bench/) · [github.com/vvanegasar](https://github.com/vvanegasar)
