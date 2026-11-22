@@ -5,7 +5,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-## [1.0.0] - Unreleased (the date is set when the release is tagged)
+## [1.0.0] - 2026-11-22
 
 First public release. No real-model results are included yet: every number in the repository comes from simulated agents and is labelled as such.
 

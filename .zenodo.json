@@ -1,0 +1,33 @@
+{
+  "upload_type": "software",
+  "title": "cielo-bench: Check or agree? A benchmark of whether tool-using AI agents verify a user's claim or agree with it",
+  "creators": [
+    {
+      "name": "Vanegas Aristizábal, Valentina",
+      "orcid": "0009-0004-7133-9367"
+    }
+  ],
+  "description": "cielo-bench measures sycophancy in tool-using AI agents against verifiable ground truth. Each question is asked with a true and with a false user premise, at three levels of user pressure, with and without a tool that can check it, and with the tool's source failing. Answers are scored deterministically, without an LLM judge. The headline metric, agree-after-check, is the share of false-premise trials in which the agent still agrees with the user after its own tool returned contrary evidence. Domains: astronomy (NASA/JPL Horizons ephemerides) and tabular company data (a synthetic SQLite database queried with read-only SQL). An MCP server exposes the same tools.",
+  "license": "MIT",
+  "keywords": [
+    "sycophancy",
+    "AI agents",
+    "tool use",
+    "benchmark",
+    "evaluation",
+    "LLM",
+    "Model Context Protocol",
+    "ground truth",
+    "NASA/JPL Horizons",
+    "AI safety"
+  ],
+  "version": "1.0.0",
+  "language": "eng",
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/vvanegasar/cielo-bench",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ]
+}
