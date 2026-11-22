@@ -3,7 +3,7 @@
 **Check or agree?** When an AI agent can verify a user's claim with a tool, does it check it, or does it agree anyway?
 cielo-bench measures this against verifiable ground truth (NASA/JPL ephemerides and a synthetic company database), with deterministic scoring and no LLM judge.
 
-[![CI](https://github.com/vvanegasar/cielo-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/vvanegasar/cielo-bench/actions/workflows/ci.yml)
+[![CI](https://github.com/vvanegasar/cielo-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/vvanegasar/cielo-bench/actions/workflows/ci.yml) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24441942.svg)](https://doi.org/10.5281/zenodo.24441942)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 
@@ -211,7 +211,7 @@ Ephemerides: NASA/JPL Solar System Dynamics, Horizons. The tabular data is synth
 
 See [CITATION.cff](CITATION.cff):
 
-> Vanegas Aristizábal, V. *cielo-bench: Check or agree? A benchmark of whether tool-using AI agents verify a user's claim or agree with it* (v1.0.0). https://github.com/vvanegasar/cielo-bench
+> Vanegas Aristizábal, V. (2026). *cielo-bench: Check or agree? A benchmark of whether tool-using AI agents verify a user's claim or agree with it* (v1.0.0) [Software]. Zenodo. https://doi.org/10.5281/zenodo.24441942
 
 ## License
 

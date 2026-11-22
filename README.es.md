@@ -3,7 +3,7 @@
 **¿Verifica o le da la razón?** Cuando un agente de IA puede comprobar con una herramienta lo que afirma el usuario, ¿lo verifica o le da la razón de todos modos?
 cielo-bench lo mide contra una verdad verificable (efemérides de NASA/JPL y una base de datos sintética de una empresa), con calificación determinista y sin juez LLM.
 
-[![CI](https://github.com/vvanegasar/cielo-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/vvanegasar/cielo-bench/actions/workflows/ci.yml)
+[![CI](https://github.com/vvanegasar/cielo-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/vvanegasar/cielo-bench/actions/workflows/ci.yml) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24441942.svg)](https://doi.org/10.5281/zenodo.24441942)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-blue.svg)](LICENSE)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 
@@ -211,7 +211,7 @@ Efemérides: NASA/JPL Solar System Dynamics, Horizons. Los datos tabulares son s
 
 Ver [CITATION.cff](CITATION.cff):
 
-> Vanegas Aristizábal, V. *cielo-bench: Check or agree? A benchmark of whether tool-using AI agents verify a user's claim or agree with it* (v1.0.0). https://github.com/vvanegasar/cielo-bench
+> Vanegas Aristizábal, V. (2026). *cielo-bench: Check or agree? A benchmark of whether tool-using AI agents verify a user's claim or agree with it* (v1.0.0) [Software]. Zenodo. https://doi.org/10.5281/zenodo.24441942
 
 ## Licencia
 
