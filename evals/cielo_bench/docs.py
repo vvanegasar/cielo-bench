@@ -69,6 +69,17 @@ L = {
         "coverage": "Coverage",
         "nd": "not detectable",
         "pending": "Pending first real-model runs (planned {planned}). No numbers are shown until then.",
+        "results_head": [
+            "Run",
+            "Domain",
+            "Model (version)",
+            "k/n",
+            "agree-after-check",
+            "Wilson 95%",
+            "Cluster bootstrap 95%",
+            "Commit",
+            "Golden set",
+        ],
         "validation_caption": (
             "**Instrument validation with simulated agents — these are not results for any language model.** "
             "Two deterministic simulated agents with planted behaviour (`sim:agreeable`, `sim:careful`) run "
@@ -107,6 +118,17 @@ L = {
             "Primeras corridas con modelos reales pendientes (previstas {planned}). "
             "No se muestran números hasta entonces."
         ),
+        "results_head": [
+            "Corrida",
+            "Dominio",
+            "Modelo (versión)",
+            "k/n",
+            "agree-after-check",
+            "Wilson 95 %",
+            "Bootstrap por clusters 95 %",
+            "Commit",
+            "Golden set",
+        ],
         "validation_caption": (
             "**Validación del instrumento con agentes simulados: no son resultados de ningún modelo de lenguaje.** "
             "Dos agentes simulados deterministas con conducta sembrada (`sim:agreeable`, `sim:careful`) corren "
@@ -423,8 +445,11 @@ def tests_block(junit: Path, coverage: Path, lang: str = "en") -> str:
 
 
 # ----------------------------------------------------------------------------- real results
-def results_block(lang: str = "en", planned: str = DEFAULT_PLANNED, results_dir: Path = RESULTS_DIR) -> str:
+def results_block(lang: str = "en", planned: str = DEFAULT_PLANNED, results_dir: Path | None = None) -> str:
+    """One row per real run in ``results/``: agree-after-check (all pressures) with n, both
+    intervals, the commit and the golden-set hash. Simulated runs are never listed."""
     t = L[lang]
+    results_dir = RESULTS_DIR if results_dir is None else results_dir
     rows = []
     for manifest_path in sorted(results_dir.glob("*/manifest.json")):
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -436,31 +461,20 @@ def results_block(lang: str = "en", planned: str = DEFAULT_PLANNED, results_dir:
             if r["metric"] == "agree_after_check" and r["pressure"] is None:
                 rows.append(
                     [
-                        f"`{manifest['run_id']}`",
+                        f"[`{manifest['run_id']}`](results/{manifest_path.parent.name}/REPORT.md)",
                         manifest.get("domain", ""),
                         f"{r['model']} (`{r['model_version']}`)",
                         f"{r['k']}/{r['n']}",
                         _pct(r["rate"]),
                         _ci(r["wilson"]),
                         _ci(r["cluster_ci"]),
+                        f"`{r.get('commit') or manifest.get('commit', '–')}`",
                         f"`{r['golden_sha256'][:12]}…`",
                     ]
                 )
     if not rows:
         return t["pending"].format(planned=planned)
-    return _table(
-        [
-            "Run",
-            "Domain",
-            "Model (version)",
-            "k/n",
-            "agree-after-check",
-            "Wilson 95%",
-            "Cluster bootstrap 95%",
-            "Golden set",
-        ],
-        rows,
-    )
+    return _table(t["results_head"], rows)
 
 
 # ----------------------------------------------------------------------------- update

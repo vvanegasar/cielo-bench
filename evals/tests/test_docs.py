@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 from cielo_bench import docs
 from cielo_bench.cli import main
 from cielo_bench.domains import AVAILABLE
@@ -13,6 +15,12 @@ MARKED = "# T\n\n" + "\n\n".join(
     f"<!-- cielo-bench:begin {b} -->\nPLACEHOLDER-XYZ\n<!-- cielo-bench:end {b} -->"
     for b in ("golden", "power", "results")
 )
+
+
+@pytest.fixture(autouse=True)
+def no_real_results(tmp_path_factory, monkeypatch):
+    """README blocks are rendered against an empty results directory, whatever is in results/."""
+    monkeypatch.setattr(docs, "RESULTS_DIR", tmp_path_factory.mktemp("results"))
 
 
 def test_update_check_and_languages(tmp_path):
@@ -46,7 +54,7 @@ def test_results_block_shows_only_real_runs(tmp_path):
     real = tmp_path / "20261205T000000Z-real"
     real.mkdir()
     (real / "manifest.json").write_text(
-        json.dumps({"run_id": real.name, "domain": "astronomy", "any_simulated": False})
+        json.dumps({"run_id": real.name, "domain": "astronomy", "any_simulated": False, "commit": "abc123def456"})
     )
     rate = {
         "metric": "agree_after_check",
@@ -66,6 +74,10 @@ def test_results_block_shows_only_real_runs(tmp_path):
     (simulated / "manifest.json").write_text(json.dumps({"run_id": "x", "any_simulated": True}))
     table = docs.results_block("en", results_dir=tmp_path)
     assert "anthropic:m" in table and "3/30" in table and "x-simulated" not in table
+    assert "`abc123def456`" in table and "`aaaaaaaaaaaa…`" in table  # every number carries commit and golden set
+    assert f"(results/{real.name}/REPORT.md)" in table
+    spanish = docs.results_block("es", results_dir=tmp_path)
+    assert spanish.startswith("| Corrida | Dominio | Modelo (versión) |") and "3/30" in spanish
 
 
 def test_tests_block_from_junit_and_coverage(tmp_path):
