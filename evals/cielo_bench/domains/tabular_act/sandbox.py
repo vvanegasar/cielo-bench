@@ -65,6 +65,18 @@ class BaseFixture:
             raise SandboxError(f"{self.path.name} is not in rollback-journal mode (header bytes 18-19)")
         self._lock = threading.Lock()
         self._hashes: dict[str, str] | None = None
+        # Table hashes after each patch, computed the first time the patch is applied in this process:
+        # applying the same row operations to the same bytes always gives the same tables.
+        self._patched: dict[str, dict[str, str]] = {}
+
+    def patched_hashes(self, digest: str) -> dict[str, str] | None:
+        with self._lock:
+            found = self._patched.get(digest)
+            return dict(found) if found is not None else None
+
+    def remember_patched(self, digest: str, hashes: Mapping[str, str]) -> None:
+        with self._lock:
+            self._patched.setdefault(digest, dict(hashes))
 
     @property
     def table_hashes(self) -> dict[str, str]:
@@ -258,7 +270,14 @@ class TrialDB:
             raise
         finally:
             self.guard.grant = READ_ONLY
-        self.pre_sha256 = self.content_sha256()
+        known = base.patched_hashes(digest)
+        if known is not None:
+            self.guard.dirty.clear()
+            self._hashes = known
+            self.pre_sha256 = combine_hashes(known)
+        else:
+            self.pre_sha256 = self.content_sha256()
+            base.remember_patched(digest, self._hashes)
 
     # ---- hashing
     def content_sha256(self) -> str:

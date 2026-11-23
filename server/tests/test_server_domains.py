@@ -134,6 +134,7 @@ def test_the_server_never_imports_the_act_domain():
         "from cielo_bench import domains\n"
         "from cielo_mcp.server import build_server\n"
         "build_server()\n"
+        "assert 'tabular_act' in domains.REGISTRY, 'the act domain is registered in the benchmark'\n"
         "assert not [m for m in sys.modules if m.startswith('cielo_bench.domains.tabular_act')], 'imported'\n"
         "print('ok')\n"
     )

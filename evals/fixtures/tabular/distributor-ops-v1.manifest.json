@@ -1,0 +1,49 @@
+{
+  "file": "distributor-ops-v1.sqlite",
+  "db_version": "ops-v1",
+  "generator_version": "1",
+  "seed": "cielo-bench/tabular-act/ops-v1",
+  "derived_from": {
+    "file": "distributor-v1.sqlite",
+    "content_sha256": "6bf808939f023fe3f45e36f24f9ac5248434980c3dd1ced09a4fd293ebd6a523"
+  },
+  "business_date": "2026-09-30",
+  "bytes": 3551232,
+  "file_sha256": "ae62a5e917f22227059bb6e6726bf1ae72907abeae23815ae66d27cb74744061",
+  "content_sha256": "8af782b1c4f8bbf2595bd0fa2326b1b59a946c51adb161df266d77d53ae58997",
+  "sqlite_version": "3.50.4",
+  "row_counts": {
+    "customers": 240,
+    "products": 144,
+    "orders": 8538,
+    "order_items": 33523,
+    "invoices": 8293,
+    "payments": 8013,
+    "inventory": 418,
+    "refunds": 82,
+    "credit_holds": 60,
+    "collection_cases": 200,
+    "reorders": 230,
+    "system_info": 4
+  },
+  "seeded": {
+    "returns": {
+      "paid_awaiting_refund": 8,
+      "paid_partly_refunded": 8,
+      "partly_paid_awaiting_refund": 8,
+      "refunded_in_full": 74
+    },
+    "holds": {
+      "late_none": 8,
+      "late_one": 20,
+      "late_three_plus": 10,
+      "released": 12,
+      "risk_none": 7,
+      "risk_overdue": 3
+    },
+    "collection_cases": 200,
+    "reorders": 230,
+    "stock_near_reorder_level": 10
+  },
+  "note": "Synthetic data, derived from distributor-v1 by a seeded generator: the company, customers and products are fictional. file_sha256 depends on the SQLite version that wrote the file; content_sha256 does not."
+}

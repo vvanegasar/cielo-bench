@@ -6,7 +6,7 @@ import pytest
 
 from cielo_bench import docs
 from cielo_bench.cli import main
-from cielo_bench.domains import AVAILABLE
+from cielo_bench.domains import AVAILABLE, get_domain
 from cielo_bench.providers.simulated import SimulatedProvider
 from cielo_bench.report import build_report, pack_run, read_trials
 from cielo_bench.runner import RunSpec, execute_run
@@ -232,7 +232,10 @@ def test_pack_strips_signatures_and_provider_ids_without_changing_scores(domain,
 def test_every_registered_domain_is_documented():
     golden = docs.golden_block("en")
     for name in AVAILABLE:
-        assert f"`{name}`" in golden
+        if get_domain(name).report_kind == "answer":  # act domains are validated by `validate` (ADR-0009)
+            assert f"`{name}`" in golden
+        else:
+            assert f"`{name}`" not in golden
 
 
 def test_empty_blocks_are_filled(tmp_path):

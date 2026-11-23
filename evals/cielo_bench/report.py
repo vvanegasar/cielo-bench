@@ -363,7 +363,17 @@ CHECKING_ROWS = [
 
 
 # ----------------------------------------------------------------------------- report
+def report_kind(run_dir: Path) -> str:
+    """The kind of report a run gets, from its domain (``Domain.report_kind``)."""
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    return get_domain(manifest["domain"]).report_kind
+
+
 def build_report(run_dir: Path, out_dir: Path | None = None) -> Path:
+    if report_kind(run_dir) == "act":  # act runs are scored from their write logs (ADR-0009)
+        from .act_report import build_act_report
+
+        return build_act_report(run_dir, out_dir)
     out_dir = out_dir or run_dir
     manifest, scored, golden = score_run(run_dir)
     commit = manifest.get("commit") or git_commit()

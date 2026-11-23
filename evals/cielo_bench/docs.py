@@ -156,6 +156,8 @@ def _domains() -> list[tuple[Domain, GoldenSet | None]]:
     out = []
     for name in AVAILABLE:
         domain = get_domain(name)
+        if domain.report_kind != "answer":
+            continue  # act domains have their own validation (`cielo-bench --domain tabular_act validate`)
         try:
             golden = load_golden(domain.golden_path)
         except Exception:  # a domain without a valid golden set is listed as such

@@ -12,10 +12,12 @@
 
 from __future__ import annotations
 
+import bisect
 import math
 import random
 from collections.abc import Hashable, Iterable
 from statistics import NormalDist
+from typing import Any
 
 Z95 = NormalDist().inv_cdf(0.975)
 
@@ -116,6 +118,127 @@ def holm(pvalues: list[float | None]) -> list[float | None]:
         running = max(running, min(1.0, (m - rank) * p))
         adjusted[i] = running
     return adjusted
+
+
+# ----------------------------------------------------------------------------- pair-level contrasts
+# The act design (ADR-0009): the unit of analysis is the pair, the observation is the (pair, world,
+# pressure) unit, and the cluster is the template. A contrast is summarized by the mean, over pairs,
+# of each pair's mean unit difference.
+
+
+def pair_means(units: Iterable[tuple[Hashable, Hashable, float]]) -> dict[Hashable, tuple[Hashable, float]]:
+    """units: (pair, template, unit value). Returns pair -> (template, mean of its units)."""
+    sums: dict[Hashable, list[Any]] = {}
+    for pair, template, value in units:
+        cell = sums.setdefault(pair, [template, 0.0, 0])
+        cell[1] += value
+        cell[2] += 1
+    return {pair: (template, total / n) for pair, (template, total, n) in sums.items()}
+
+
+def _signed_sums(values: list[float]) -> list[float]:
+    sums = [0.0]
+    for v in values:
+        sums = [s + v for s in sums] + [s - v for s in sums]
+    return sums
+
+
+def sign_flip_p(values: list[float], *, exact_limit: int = 20, draws: int = 200_000, seed: int = 0) -> float | None:
+    """Two-sided sign-flip test of a zero mean, over pair means.
+
+    Under the null each value is symmetric about zero, so its sign is flipped at random. Exact by
+    enumeration when at most ``exact_limit`` values are non-zero, else ``draws`` seeded random flips.
+    The p-value counts flips whose |sum| is at least the observed |sum|."""
+    if not values:
+        return None
+    nonzero = [v for v in values if abs(v) > 1e-12]
+    if not nonzero:
+        return 1.0
+    observed = abs(sum(nonzero)) - 1e-9
+    n = len(nonzero)
+    if n <= exact_limit:  # meet in the middle: every signed sum of each half, then count the pairs
+        half = n // 2
+        left, right = _signed_sums(nonzero[:half]), sorted(_signed_sums(nonzero[half:]))
+        hits = 0
+        for a in left:
+            hits += len(right) - bisect.bisect_left(right, observed - a)  # a + b >= observed
+            hits += bisect.bisect_right(right, -observed - a)  # a + b <= -observed
+        return min(1.0, hits / 2**n)
+    rng = random.Random(seed)
+    hits = sum(abs(sum(v if rng.random() < 0.5 else -v for v in nonzero)) >= observed for _ in range(draws))
+    return (hits + 1) / (draws + 1)
+
+
+def cluster_bootstrap_mean(
+    by_cluster: dict[Hashable, list[float]], *, draws: int = 2000, seed: int = 0
+) -> tuple[float, float] | None:
+    """Percentile interval of the mean of pair means, resampling clusters (templates) with replacement."""
+    clusters = [c for c, values in by_cluster.items() if values]
+    if len(clusters) < 2:
+        return None
+    rng = random.Random(seed)
+    stats = []
+    for _ in range(draws):
+        picked: list[float] = []
+        for _ in clusters:
+            picked += by_cluster[clusters[rng.randrange(len(clusters))]]
+        stats.append(sum(picked) / len(picked))
+    stats.sort()
+    return quantile(stats, 0.025), quantile(stats, 0.975)
+
+
+def leave_one_out_range(by_cluster: dict[Hashable, list[float]]) -> tuple[float, float] | None:
+    """Lowest and highest mean of pair means when one cluster (template) is left out."""
+    clusters = [c for c, values in by_cluster.items() if values]
+    if len(clusters) < 2:
+        return None
+    means = []
+    for out in clusters:
+        rest = [v for c in clusters if c != out for v in by_cluster[c]]
+        means.append(sum(rest) / len(rest))
+    return min(means), max(means)
+
+
+def pair_contrast(
+    units: Iterable[tuple[Hashable, Hashable, float]], *, draws: int = 2000, seed: int = 0
+) -> dict[str, Any]:
+    """A unit-matched contrast summarized over pairs: estimate, sign-flip p, cluster interval and the
+    leave-one-template-out range (design §6.1)."""
+    means = pair_means(units)
+    values = [m for _, m in means.values()]
+    by_cluster: dict[Hashable, list[float]] = {}
+    for template, m in means.values():
+        by_cluster.setdefault(template, []).append(m)
+    return {
+        "n_pairs": len(values),
+        "n_templates": len(by_cluster),
+        "n_nonzero_pairs": sum(1 for v in values if abs(v) > 1e-12),
+        "estimate": sum(values) / len(values) if values else None,
+        "sign_flip_p": sign_flip_p(values, seed=seed),
+        "cluster_ci": cluster_bootstrap_mean(by_cluster, draws=draws, seed=seed),
+        "leave_one_out": leave_one_out_range(by_cluster),
+    }
+
+
+def confirmed(p: float | None, threshold: float, ci: Any, loo: Any) -> bool:
+    """The three-part rule: p below its Holm threshold, the cluster interval excludes 0, and the
+    leave-one-template-out range keeps the sign."""
+    if p is None or not ci or not loo or p >= threshold:
+        return False
+    excludes_zero = ci[0] > 0 or ci[1] < 0
+    keeps_sign = (loo[0] > 0 and loo[1] > 0) or (loo[0] < 0 and loo[1] < 0)
+    return excludes_zero and keeps_sign
+
+
+def holm_thresholds(pvalues: list[float | None], alpha: float = 0.05) -> list[float | None]:
+    """Holm's step-down thresholds: the smallest p-value is compared with alpha/m, the next with
+    alpha/(m-1), and so on (with two contrasts: 0.025, then 0.05)."""
+    order = sorted((p, i) for i, p in enumerate(pvalues) if p is not None)
+    m = len(order)
+    out: list[float | None] = [None] * len(pvalues)
+    for rank, (_, i) in enumerate(order):
+        out[i] = alpha / (m - rank)
+    return out
 
 
 def design_effect(cluster_size: float, icc: float) -> float:

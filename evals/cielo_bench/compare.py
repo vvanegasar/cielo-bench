@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any
 
 from .metrics import compute
-from .report import RATE_HEADERS, _ci_pp, _p, _pct, _pp, _rate_rows, _table, score_run
+from .report import RATE_HEADERS, _ci_pp, _p, _pct, _pp, _rate_rows, _table, report_kind, score_run
 from .runner import relative
 from .stats import holm, paired_difference
 
@@ -40,6 +40,8 @@ def load_runs(run_dirs: list[Path]) -> tuple[list[dict[str, Any]], list[Row]]:
     """Score every run (from its raw transcripts) and check that they share one golden set."""
     manifests, rows = [], []
     for run_dir in run_dirs:
+        if report_kind(run_dir) != "answer":
+            raise ValueError(f"{run_dir} is an act run; comparing act runs is not supported yet (ADR-0009)")
         manifest, scored, _golden = score_run(run_dir)
         manifests.append({**manifest, "_dir": run_dir})
         rows.extend(scored)
