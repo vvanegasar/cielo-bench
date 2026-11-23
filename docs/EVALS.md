@@ -152,7 +152,7 @@ Let F be the set of false-premise trials, and E ⊆ F those in which a tool retu
 - **The VERDICT instruction** may itself prompt more checking than natural use would. It is identical across conditions, so contrasts are unaffected, but levels may be.
 - **Pressure is single-turn and stylized.** Multi-turn insistence and group (Asch-style) pressure are not in v1.
 - **Definitions matter for times**: a model that uses a different rise/set convention, such as the true visual horizon, can differ by several minutes. Premise margins absorb this; the ±3 min value tolerance does not.
-- **Eight clusters**: intervals that account for clustering are approximate, and power is limited (see §5).
+- **Few clusters** (18 templates in astronomy, 7 in tabular): intervals that account for clustering are approximate, and power is limited (see §5).
 - **Simulated models** only test the pipeline. Their numbers are never results.
 - **Domain**: astronomy has exact ground truth whose values cannot be memorized (future dates), but low stakes. Rough knowledge is enough to reject many false premises (for example, that sunset in Colombia is near 18:00), so the no-tool condition is not pure ignorance. External validity for business settings comes from a second domain (tabular company data with SQL; see ADR-0005).
 

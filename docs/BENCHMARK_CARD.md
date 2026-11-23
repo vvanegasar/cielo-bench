@@ -6,7 +6,7 @@ A datasheet-style card, after Gebru et al., *Datasheets for Datasets*, adapted t
 
 - **Purpose.** To measure whether an AI agent that *can* check a user's claim with a tool does check it, and whether it still agrees with a false claim after the tool contradicted it. Agreeing despite one's own contrary evidence cannot be explained by ignorance. It is the behaviour this benchmark isolates.
 - **Gap addressed.** Earlier work measures agents following misleading user assertions. Here the same item is asked with and without the verifying tool, the user's pressure is graded, and the source is made to fail, all against deterministic ground truth with no LLM judge.
-- **Creator.** Valentina Vanegas Aristizábal, as a personal, non-commercial research project. No funding. No affiliation with or endorsement by NASA, JPL or any company.
+- **Creator.** Valentina Vanegas Aristizábal, as a personal, non-commercial research project. No affiliation with or endorsement by NASA, JPL or any company.
 
 ## Composition
 

@@ -138,7 +138,7 @@ These are paired contrasts on the same 432 units: (pair, language, pressure). Ea
 - **What depends on the template.**
   - In both models every discordant unit favours the tool, with and without `sets_first`, and both cluster intervals exclude zero.
   - Outside `sets_first`, Sonnet has too few no-tool errors (7 units in 6 pairs) for its contrast to survive the Holm adjustment. Haiku's effect comes from 4 templates.
-  - Counted by template, neither model's effect is significant.
+  - Counted by template, neither model's effect is significant outside `sets_first` (sign test p = 0.12 for Haiku and 0.062 for Sonnet). On the full set the template-level tests give p = 0.062 (Haiku) and 0.031 (Sonnet).
 - **What the exclusion leaves in.** It drops the whole template, including its two pairs without the ambiguity (`-02` and `-03`). It keeps the five `rises_first` pairs with the same structure (§2); `rises_first-07` contributes one discordant unit to each model.
 
 **Notes on the table**
@@ -170,7 +170,7 @@ These are paired contrasts on the same 432 units: (pair, language, pressure). Ea
 - **Verification is a lower bound.** Verification was 647/756 = 85.6% (W [82.9, 87.9], C [66.8, 98.5]), and that is a lower bound on checking.
   - `docs/DOMAINS.md` asks for the share of `tool` trials with an `ok` result but no evidence: 109/756 = 14.4%.
   - In all 109, the queries reached the tables the pair needs. 105 ended with the correct verdict, and all 82 numeric answers were within tolerance.
-  - The rule does not count them because the model added up listed rows itself (per-invoice balances, or totals by status), which the rule leaves out by design.
+  - In the six of them read by hand (audit rows A15 to A20), the rule did not count the check because the model added up listed rows itself (per-invoice balances, or totals by status), which the rule leaves out by design.
   - The seeded hand audit of 30 transcripts in [2026-11-tabular-evidence-audit.md](2026-11-tabular-evidence-audit.md) is agent-assisted, and the author re-read rows A15 to A20 and agreed with all six. It found no false positives, and the sampled non-counted trials are all of this kind.
   - agree-after-check (0/324) is therefore measured on the clean cases. The 54 false-premise trials among the 109 all ended with FALSE.
 
@@ -283,9 +283,9 @@ The table gives the cost per trial and the latency per trial (p50 / p95, wall cl
 
 **When the models could check, they checked and went with the evidence.** On the astronomy questions, all four models used the tool on every trial. Only twice in 1,080 trials did a model keep agreeing with a false premise after the tool contradicted it, and both cases came from the same ambiguous template. But the checks were easy and the false premises were far from the truth, so at this difficulty the benchmark cannot rank the models or tell whether pressure matters.
 
-**Without the tool, the models erred in both directions.** Haiku accepted a false premise in 4 to 7% of trials and Sonnet in 2 to 4%, depending on whether the ambiguous template is counted. Both also rejected many true premises: Haiku called 37% of them false. Part of what looks like correcting the user is a tendency to say no.
+**Without the tool, the models erred in both directions.** Haiku accepted a false premise in 4 to 7% of trials and Sonnet in 2 to 4%, depending on whether the ambiguous template is counted (the lower figures come from the post hoc analysis in §3). Both also rejected many true premises: Haiku called 37% of them false. Part of what looks like correcting the user is a tendency to say no.
 
-**When the source failed, the models usually said so.** On the same items, Haiku reported the failure in 70% of trials and Sonnet in 74%. Otherwise they answered anyway, often with an estimate from general knowledge. Haiku tended to put that estimate in the VALUE line and Sonnet in the prose, so these runs cannot yet compare the two on the numbers they stated. On company data, Haiku reported the failure in 92% of trials and never wrote a VALUE line.
+**When the source failed, the models usually said so.** On the same items, Haiku abstained without giving a value in 70% of trials and Sonnet in 74%. Otherwise they gave a verdict or a value anyway, often an estimate from general knowledge. Haiku tended to put that estimate in the VALUE line and Sonnet in the prose, so these runs cannot yet compare the two on the numbers they stated. On company data, Haiku abstained without a value in 92% of trials and never wrote a VALUE line.
 
 **What comes next.** Measuring agreement after a check needs a harder test: premises closer to the truth, insistence over several turns, and free-form answers. Version 1.2 adds a second provider, and v1.3 adds these harder conditions.
 
