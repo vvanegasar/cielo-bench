@@ -1,6 +1,12 @@
 # Tabular evidence-rule audit (November 2026)
 
-> **Status: agent-assisted audit, pending the author's spot check.** The sample was drawn by code. Each transcript was read against the checklist below by the agent that ran the evaluation, not by the author. The author should re-read a few rows, at least A15 to A20, before this audit counts as the manual audit that `docs/DOMAINS.md` and ADR-0006 ask for.
+> **Status: agent-assisted audit, spot-checked by the author.**
+>
+> - The sample was drawn by code.
+> - Each transcript was read against the checklist below by the agent that ran the evaluation.
+> - On 2026-11-23 the author re-read rows A15 to A20, the non-counted `tool` trials, against their transcripts and agreed with all six readings.
+>
+> With that spot check, this is the manual audit that `docs/DOMAINS.md` and ADR-0006 ask for before results are published.
 
 ## Why
 

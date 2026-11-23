@@ -28,8 +28,8 @@ First real-model results. Both golden sets are unchanged from 1.0.0 (same SHA-25
   - the headline numbers with n and intervals;
   - the tool versus no-tool contrast, with a labelled post hoc analysis without the `sets_first` template;
   - the fault block, cost, latency and limitations;
-  - a draft interpretation for the author.
-- **Tabular evidence-rule audit** `docs/results/2026-11-tabular-evidence-audit.md`. A seeded sample of 30 transcripts, stratified by template and condition, read against a written checklist. It is agent-assisted and pending the author's spot check.
+  - the author's interpretation.
+- **Tabular evidence-rule audit** `docs/results/2026-11-tabular-evidence-audit.md`. A seeded sample of 30 transcripts, stratified by template and condition, read against a written checklist. It is agent-assisted, and the author spot-checked it (rows A15 to A20, all six agreed).
 
 ### Changed
 
@@ -56,6 +56,10 @@ First real-model results. Both golden sets are unchanged from 1.0.0 (same SHA-25
   - Progress lines come every 50 trials instead of 200.
 - **Edge errors are retried.** HTTP 520–524 errors from the edge in front of the model API are now retried like 502–504 instead of failing the trial.
 - **`compare` paths.** `cielo-bench compare` stores run directories relative to the project.
+- **Documentation matches the code and the data.**
+  - EVALS.md now gives the `moon_phase` matching window (±60 min) and says that evidence needs one `ok` matching call per body.
+  - It also says that "fabricated value" counts VALUE lines, not numbers stated in the prose.
+  - EVALS.md and the benchmark card say that rough knowledge can reject many false premises, so the no-tool condition is not pure ignorance.
 
 ## [1.0.0] - 2026-11-22
 
