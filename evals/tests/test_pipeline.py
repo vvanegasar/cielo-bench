@@ -76,6 +76,30 @@ def test_run_report_and_resume(domain, golden, tmp_path):
     assert len((run_dir / "trials.jsonl").read_text().splitlines()) == len(lines)
 
 
+def test_report_states_the_design_that_ran(domain, golden, tmp_path):
+    """A tool-only run without a fault block must not be described as no_tool + tool with faults."""
+    run_dir = execute_run(spec(domain, golden, tmp_path / "toolonly", conditions=("tool",), limit_pairs=2))
+    text = build_report(run_dir).read_text()
+    assert "| Core design | conditions tool × premise" in text and "no_tool, tool ×" not in text
+    assert "2 pairs, round-robin across templates" in text
+    assert "| Fault block | – |" in text and "| Fault block design | – |" in text
+    assert "raw transcripts: " in text and "/trials.jsonl`)" in text  # simulated runs are not packed
+    full = build_report(execute_run(spec(domain, golden, tmp_path / "full", limit_pairs=2))).read_text()
+    assert "conditions no_tool, tool ×" in full and "fault_down (down)" in full
+
+
+def test_interpretation_points_to_the_results_note(tmp_path):
+    from cielo_bench.report import interpretation_pointer
+
+    notes = tmp_path / "notes"
+    notes.mkdir()
+    (notes / "2026-11-x.md").write_text("Runs: `results/2026-11-23-astronomy-m`.\n", encoding="utf-8")
+    (notes / "other.md").write_text("nothing here\n", encoding="utf-8")
+    cited = interpretation_pointer(tmp_path / "results" / "2026-11-23-astronomy-m", notes)
+    assert "docs/results/2026-11-x.md" in cited and "other.md" not in cited
+    assert "results note in `docs/results/`" in interpretation_pointer(tmp_path / "results" / "uncited", notes)
+
+
 def test_budget_guard_stops_before_spending(domain, golden, tmp_path):
     run_dir = execute_run(spec(domain, golden, tmp_path / "run", max_usd=0.0))
     manifest = json.loads((run_dir / "manifest.json").read_text())

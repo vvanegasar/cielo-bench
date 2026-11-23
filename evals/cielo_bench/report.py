@@ -365,6 +365,21 @@ def build_report(run_dir: Path, out_dir: Path | None = None) -> Path:
     return report_path
 
 
+NOTES_DIR = PROJECT_ROOT / "docs" / "results"
+
+
+def interpretation_pointer(run_dir: Path, notes_dir: Path | None = None) -> str:
+    """Section 12 is not generated: it points to the results notes that cite this run, where the
+    author writes the interpretation."""
+    notes_dir = NOTES_DIR if notes_dir is None else notes_dir
+    name = Path(run_dir).name
+    notes = sorted(p for p in notes_dir.glob("*.md") if f"results/{name}" in p.read_text(encoding="utf-8"))
+    if not notes:
+        return "_Not generated. The author's interpretation goes in a results note in `docs/results/`._"
+    links = ", ".join(f"[`docs/results/{p.name}`](../../docs/results/{p.name})" for p in notes)
+    return f"_Not generated. The author's interpretation is in the Interpretation section of {links}._"
+
+
 def render_markdown(
     manifest: dict[str, Any],
     metrics: dict[str, Any],
@@ -380,6 +395,9 @@ def render_markdown(
         "_**SIMULATED** · " if simulated else "_"
     ) + f"commit `{commit}` · golden set `{gh[:16]}…` · run `{manifest['run_id']}` · model versions: {versions}_"
     design = manifest["design"]
+    core = [c for c in design["conditions"] if c in ("no_tool", "tool")]
+    # real runs are versioned packed (cielo-bench pack); simulated runs keep the plain file
+    transcripts = "trials.jsonl" if simulated else "trials.jsonl.gz"
     created = datetime.fromisoformat(manifest["created_at_utc"].replace("Z", "+00:00"))
     lines: list[str] = ['# cielo-bench report: "Check or agree?"', ""]
     if simulated:
@@ -394,7 +412,7 @@ def render_markdown(
         _table(
             ["Field", "Value"],
             [
-                ["Run", f"`{manifest['run_id']}` (raw transcripts: `{relative(run_dir)}/trials.jsonl`)"],
+                ["Run", f"`{manifest['run_id']}` (raw transcripts: `{relative(run_dir)}/{transcripts}`)"],
                 ["Run date", f"{manifest['created_at_utc']} ({created.astimezone(COT):%Y-%m-%d %H:%M} Colombia time)"],
                 ["Commit", f"`{commit}`"],
                 [
@@ -406,15 +424,23 @@ def render_markdown(
                 ["Models (version)", models + f"; versions: {versions}"],
                 [
                     "Core design",
-                    f"conditions no_tool, tool × premise {', '.join(design['premises'])} × pressure "
+                    f"conditions {', '.join(core) or '–'} × premise {', '.join(design['premises'])} × pressure "
                     f"{', '.join(design['pressures'])} × {design['reps']} rep(s), languages: {design['langs']}"
-                    + (f"; first {design['limit_pairs']} pairs" if design.get("limit_pairs") else ""),
+                    + (
+                        f"; {design['limit_pairs']} pairs, round-robin across templates"
+                        if design.get("limit_pairs")
+                        else ""
+                    ),
                 ],
-                ["Fault block", ", ".join(f"{c} ({k})" for c, k in design["fault_profiles"].items()) or "none"],
+                ["Fault block", ", ".join(f"{c} ({k})" for c, k in design["fault_profiles"].items()) or "–"],
                 [
                     "Fault block design",
-                    f"pressure {', '.join(design['fault_pressures'])}; "
-                    + (f"{design['fault_limit']} pairs" if design.get("fault_limit") else "all pairs"),
+                    (
+                        f"pressure {', '.join(design['fault_pressures'])}; "
+                        + (f"{design['fault_limit']} pairs" if design.get("fault_limit") else "all pairs")
+                    )
+                    if design["fault_profiles"]
+                    else "–",
                 ],
                 [
                     "Trials",
@@ -730,12 +756,12 @@ def render_markdown(
         "## 11. Error samples: the worst failures (automated list)",
         "",
         "Ordered by severity (0 = most severe), at most three per model and category. Listing only; no "
-        "interpretation. Full transcripts are in `trials.jsonl`.",
+        f"interpretation. Full transcripts are in `{transcripts}`.",
         "",
         _table(["Sev.", "Category", "Trial", "Verdict", "Value", "Target", "Reply (end)"], w_rows),
         "",
         stamp,
         "",
     ]
-    lines += ["## 12. Interpretation", "", "_To be written by the author._", ""]
+    lines += ["## 12. Interpretation", "", interpretation_pointer(run_dir), ""]
     return "\n".join(lines)
