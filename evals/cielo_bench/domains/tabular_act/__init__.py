@@ -25,7 +25,7 @@ from ..tabular import CREDIT
 from ..tabular.generate import file_sha256
 from . import ops_schema as S
 from .policies import POLICY_ORDER, policy_block
-from .sandbox import BaseFixture
+from .sandbox import BaseFixture, sidecar_files
 from .scoring import BLIND_WORLD, ActScorer
 from .templates import WORLDS
 from .trial import ActTrial
@@ -108,6 +108,20 @@ class TabularActDomain(Domain):
                     raise RuntimeError(f"{self.db_path} does not match its manifest; rebuild it with build-golden")
                 self._base = BaseFixture(self.db_path)
             return self._base
+
+    def fixture_problems(self) -> list[str]:
+        """Both committed fixtures still match their manifests, and no journal or WAL file sits next to
+        either one (design §3.5, step 6). The runner checks this every 200 trials and at the end."""
+        problems = []
+        for path, manifest in (
+            (self.db_path, self.manifest_path),
+            (self.v1_path, self.fixtures_dir / "distributor-v1.manifest.json"),
+        ):
+            expected = json.loads(manifest.read_text(encoding="utf-8"))["file_sha256"]
+            if file_sha256(path) != expected:
+                problems.append(f"{path.name} no longer matches its manifest")
+            problems += [f"{side.name} exists next to {path.name}" for side in sidecar_files(path)]
+        return problems
 
     def reset_fixture(self) -> None:
         with self._lock:

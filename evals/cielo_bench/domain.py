@@ -139,7 +139,8 @@ class TrialSandbox(Protocol):
     ``close()`` releases the sandbox.
     """
 
-    executor: ToolExecutor
+    @property
+    def executor(self) -> ToolExecutor: ...
 
     def end_turn(self, turn: int) -> str | None: ...
 
@@ -272,3 +273,8 @@ class Domain(ABC):
     def make_simulator(self, persona: str, golden: Any, seed: int) -> Any:
         """A simulated model for this domain, or None for the shared simulated provider."""
         return None
+
+    def fixture_problems(self) -> list[str]:
+        """Problems with the committed fixtures, checked during a run (every 200 trials and at the
+        end); any problem stops the run. The default checks nothing."""
+        return []

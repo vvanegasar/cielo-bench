@@ -104,6 +104,7 @@ class RunSpec:
 
 
 PROGRESS_EVERY = 50  # trials between progress lines
+FIXTURE_CHECK_EVERY = 200  # trials between checks of the committed fixtures (Domain.fixture_problems)
 SLEEP_GAP_S = 30.0  # wall-clock time not seen by the monotonic clock, above which the machine slept
 
 
@@ -551,6 +552,12 @@ def execute_run(spec: RunSpec) -> Path:
             **extra,
         }
 
+    def check_fixtures() -> None:
+        problems = domain.fixture_problems()
+        if problems and not state["stopped"]:
+            state["stopped"] = "fixture check failed: " + "; ".join(problems)
+            _stderr(f"  [fixtures] {state['stopped']}; stopping the run")
+
     def record_done(record: dict[str, Any]) -> None:
         with lock:
             with trials_path.open("a", encoding="utf-8") as fh:
@@ -558,6 +565,8 @@ def execute_run(spec: RunSpec) -> Path:
             state["completed"] += 1
             state["errors"] += bool(record.get("error"))
             state["cost"] += record.get("cost_usd") or 0.0
+            if state["completed"] % FIXTURE_CHECK_EVERY == 0:
+                check_fixtures()
             if spec.progress and (state["completed"] % PROGRESS_EVERY == 0 or state["completed"] == len(pending)):
                 print(
                     f"  [{state['completed']}/{len(pending)}] trials done, cost so far "
@@ -576,6 +585,8 @@ def execute_run(spec: RunSpec) -> Path:
         with ThreadPoolExecutor(max_workers=max(1, spec.workers)) as pool:
             in_flight: set[Future[dict[str, Any]]] = set()
             for plan in pending:
+                if state["stopped"]:  # a failed fixture check
+                    break
                 if spec.max_usd is not None and state["cost"] >= spec.max_usd:
                     state["stopped"] = f"budget of US${spec.max_usd} reached"
                     break
@@ -589,6 +600,7 @@ def execute_run(spec: RunSpec) -> Path:
     finally:
         watchdog.stop()
         release(awake)
+    check_fixtures()  # and once more at the end
 
     tool_executor = executors.get("tool")
     outcome = {

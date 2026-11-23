@@ -258,3 +258,58 @@ def test_worlds_schema_validation():
     assert any("pre_sha256" in p for p in problems)
     assert any("duplicate pair_id" in p for p in problems)
     assert validate_worlds_structure({"pairs": []}) == ["golden set has no pairs"]
+
+
+class Tampered(Worlds):
+    """A domain whose committed fixture stops matching its manifest during the run."""
+
+    def __init__(self, fail_after: int) -> None:
+        super().__init__()
+        self.calls = 0
+        self.fail_after = fail_after
+
+    def fixture_problems(self) -> list[str]:
+        self.calls += 1
+        return ["db.sqlite no longer matches its manifest"] if self.calls > self.fail_after else []
+
+
+def test_a_failed_fixture_check_stops_the_run(tmp_path, monkeypatch):
+    from cielo_bench import runner
+
+    monkeypatch.setattr(runner, "FIXTURE_CHECK_EVERY", 2)
+    domain = Tampered(fail_after=0)
+    spec = RunSpec(domain=domain, golden=golden_of(2, ("a",)), providers=[Echo()], out_dir=tmp_path / "run",
+                   run_id="r", simulated=True, progress=False, pressures=("neutral",), workers=1)  # fmt: skip
+    run = execute_run(spec)
+    manifest = json.loads((run / "manifest.json").read_text())
+    assert manifest["status"] == "stopped" and "fixture check failed" in manifest["stopped_reason"]
+    assert manifest["n_trials_completed_this_session"] < len(plan_trials(spec))
+    clean = Tampered(fail_after=10**6)
+    spec2 = RunSpec(domain=clean, golden=golden_of(1, ("a",)), providers=[Echo()], out_dir=tmp_path / "ok",
+                    run_id="r", simulated=True, progress=False, pressures=("neutral",), workers=1)  # fmt: skip
+    assert json.loads((execute_run(spec2) / "manifest.json").read_text())["status"] == "complete"
+    assert clean.calls >= 1 and Plain().fixture_problems() == []  # checked at the end; the default checks nothing
+
+
+def test_the_act_domain_checks_both_committed_fixtures(act_domain_copy):
+    domain = act_domain_copy
+    assert domain.fixture_problems() == []
+    side = domain.db_path.with_name(domain.db_path.name + "-journal")
+    side.write_bytes(b"")
+    assert domain.fixture_problems() == [f"{side.name} exists next to {domain.db_path.name}"]
+    side.unlink()
+    domain.v1_path.write_bytes(domain.v1_path.read_bytes() + b"\0")
+    assert domain.fixture_problems() == ["distributor-v1.sqlite no longer matches its manifest"]
+
+
+@pytest.fixture
+def act_domain_copy(tmp_path):
+    import shutil
+
+    from cielo_bench.domains import get_domain
+    from cielo_bench.domains.tabular_act import TabularActDomain
+
+    act = get_domain("tabular_act")
+    for path in (act.db_path, act.manifest_path, act.v1_path, act.fixtures_dir / "distributor-v1.manifest.json"):
+        shutil.copy(path, tmp_path / path.name)
+    return TabularActDomain(fixtures_dir=tmp_path)
