@@ -6,6 +6,7 @@ cielo-bench reproduce --from RUN_DIR   # rebuild a run's report from its raw tra
 cielo-bench run                        # real models from .env (asks before spending)
 cielo-bench run --simulated            # simulated models, full control of the design
 cielo-bench report RUN_DIR             # REPORT.md + figures + summary.json from raw JSONL
+cielo-bench compare RUN_DIR... --out D  # models on identical items, across runs (COMPARISON.md)
 cielo-bench estimate                   # cost estimate of a design, per model
 cielo-bench power                      # power and minimum detectable effects
 cielo-bench build-golden               # (re)build the golden set from the source (cached)
@@ -297,6 +298,17 @@ def cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_compare(args: argparse.Namespace) -> int:
+    from .compare import compare
+
+    try:
+        print(compare(args.run_dirs, args.out))
+    except ValueError as exc:
+        print(f"cannot compare: {exc}", file=sys.stderr)
+        return 2
+    return 0
+
+
 def cmd_reproduce(args: argparse.Namespace) -> int:
     from .report import build_report
 
@@ -454,6 +466,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("run_dir", type=Path)
     p.add_argument("--out", type=Path, help="output directory (default: the run directory)")
     p.set_defaults(func=cmd_report)
+
+    p = sub.add_parser("compare", help="compare models from several runs on the units they all share")
+    p.add_argument("run_dirs", type=Path, nargs="+")
+    p.add_argument("--out", type=Path, required=True, help="directory for COMPARISON.md and comparison.json")
+    p.set_defaults(func=cmd_compare)
 
     p = sub.add_parser("estimate", help="cost estimate of a design, per model")
     _add_design_args(p)
