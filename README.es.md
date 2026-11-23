@@ -9,6 +9,8 @@ cielo-bench lo mide contra una verdad verificable (efemérides de NASA/JPL y una
 
 > **Estado:** v1.1: el instrumento y sus primeros resultados con modelos reales (2026-11-23, cuatro modelos de Anthropic; ver [Resultados](#resultados-modelos-reales) y la [nota de resultados](docs/results/2026-11-first-real-runs.md), en inglés). Cada número de esta página está rotulado como propiedad del benchmark, validación con agentes simulados o resultado con modelos reales.
 
+Informe técnico (en inglés): [Check or Agree? Measuring Whether Tool-Using Agents Keep Agreeing with a False Premise After Checking (doi:10.5281/zenodo.24481194)](https://doi.org/10.5281/zenodo.24481194)
+
 ## Por qué
 
 Un agente que acepta una premisa falsa cuando no puede comprobarla es ignorante. Uno que la acepta **después de que su propia herramienta le devolvió la evidencia contraria** le está dando la razón al usuario, no a los hechos. cielo-bench separa los dos casos:
@@ -58,11 +60,33 @@ También se reportan, cada una con k/n, intervalo de Wilson al 95 % e intervalo 
 
 Los contrastes pareados (con menos sin herramienta, efectos de presión, fallas) usan McNemar exacto con ajuste de Holm sobre una familia preespecificada. Definiciones completas en [docs/EVALS.md](docs/EVALS.md).
 
+## Instalación
+
+```bash
+pip install cielo-bench     # el benchmark, con sus golden sets y fixtures (Python 3.11+)
+pip install cielo-mcp       # el servidor MCP; instala también cielo-bench (Python 3.12+)
+```
+
+Para usar el servidor en Claude Desktop, agrégalo a `claude_desktop_config.json` (**Settings → Developer → Edit Config**), con la ruta absoluta de `cielo-mcp` (`which cielo-mcp` la muestra):
+
+```json
+{
+  "mcpServers": {
+    "cielo": {
+      "command": "/ruta/absoluta/a/.venv/bin/cielo-mcp",
+      "args": ["--live"]
+    }
+  }
+}
+```
+
+Sin `"--live"`, el servidor responde solo desde las fixtures en caché. Más en [server/README.md](server/README.md), en inglés.
+
 ## Inicio rápido (sin llaves ni red)
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
+pip install -e ".[dev]"                            # desde un clon; o bien: pip install cielo-bench
 cielo-bench verify                                 # golden sets y fixtures intactos
 cielo-bench reproduce --simulated --quick          # de punta a punta con agentes simulados (~2 s)
 cielo-bench --domain tabular reproduce --simulated --quick
@@ -108,14 +132,14 @@ Generada por `cielo-bench docs --update-readme-tables` a partir de la última co
 <!-- cielo-bench:begin tests -->
 | Suite | Pruebas | Pasan | Fallan | Omitidas |
 |---|---|---|---|---|
-| pytest (repository root) | 346 | 346 | 0 | 0 |
+| pytest (repository root) | 356 | 356 | 0 | 0 |
 
 | Módulo | Sentencias | Cobertura |
 |---|---|---|
-| `core` | 2004 | 95% |
+| `core` | 2036 | 95% |
 | `domains/astronomy` | 1400 | 95% |
 | `providers` | 483 | 98% |
-| **total** | 3887 | 94% |
+| **total** | 3919 | 94% |
 <!-- cielo-bench:end tests -->
 
 ## Validación del instrumento (agentes simulados)
@@ -222,7 +246,7 @@ Efemérides: NASA/JPL Solar System Dynamics, Horizons. Los datos tabulares son s
 
 Ver [CITATION.cff](CITATION.cff):
 
-> Vanegas Aristizábal, V. (2026). *cielo-bench: Check or agree? A benchmark of whether tool-using AI agents verify a user's claim or agree with it* (v1.1.0) [Software]. Zenodo. https://doi.org/10.5281/zenodo.24441942
+> Vanegas Aristizábal, V. (2026). *cielo-bench: Check or agree? A benchmark of whether tool-using AI agents verify a user's claim or agree with it* (v1.1.1) [Software]. Zenodo. https://doi.org/10.5281/zenodo.24441942
 
 El DOI es el DOI de concepto de Zenodo: cubre todas las versiones y lleva a la más reciente. Cada versión tiene además su propio DOI en Zenodo.
 
