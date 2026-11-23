@@ -12,14 +12,25 @@ The core block (``no_tool``, ``tool``) crosses premise x pressure on every pair.
 block runs at the pressures in ``fault_pressures`` (default: assertive) on ``fault_limit``
 pairs (default: all). Every trial is one JSON line with the full exchange: raw responses,
 tool calls, tool results, usage and cost. Scores are computed later, from these records only.
+
+A real run takes hours. Two guards keep a stalled run from going unnoticed: on macOS the run
+holds an idle-sleep assertion (``caffeinate -i``) while it lasts, because a machine that idles
+into sleep silently drops in-flight requests whose timeouts then count only awake time; and a
+watchdog reports, on stderr, when no trial has finished for a while or when the machine was
+asleep.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import platform
+import shutil
+import subprocess
 import sys
 import threading
+import time
+from collections.abc import Callable
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta, timezone
@@ -81,6 +92,113 @@ class RunSpec:
     resume: bool = False
     cache_outputs: bool = True
     progress: bool = True
+    keep_awake: bool = True  # macOS only, real runs only: hold an idle-sleep assertion during the run
+    heartbeat_s: float = 60.0  # how often the watchdog looks at the run
+    stall_warn_s: float = 300.0  # report when no trial has finished for this long (wall clock)
+
+
+PROGRESS_EVERY = 50  # trials between progress lines
+SLEEP_GAP_S = 30.0  # wall-clock time not seen by the monotonic clock, above which the machine slept
+
+
+def keep_awake(enabled: bool) -> subprocess.Popen[bytes] | None:
+    """On macOS, start ``caffeinate -i -w <pid>``: no idle sleep while this process lives.
+
+    If the machine idles into sleep, an in-flight HTTP request dies silently and its read
+    timeout counts only awake time, so one request can block a worker for hours. Returns the
+    helper process (the caller terminates it), or None where it is unavailable or unwanted.
+    """
+    if not enabled or sys.platform != "darwin":
+        return None
+    exe = shutil.which("caffeinate")
+    if exe is None:
+        return None
+    try:
+        return subprocess.Popen(
+            [exe, "-i", "-w", str(os.getpid())],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except OSError:
+        return None
+
+
+class Watchdog:
+    """Reports a run that stops making progress, and gaps in which the machine was asleep.
+
+    ``check`` compares the wall clock with the monotonic clock (which does not advance while the
+    machine sleeps) and the time since the last finished trial. It only reports; it never
+    cancels a request, so a slow trial is never cut short by the watchdog.
+    """
+
+    def __init__(
+        self,
+        *,
+        interval_s: float,
+        stall_s: float,
+        emit: Callable[[str], None],
+        wall: Callable[[], float] = time.time,
+        mono: Callable[[], float] = time.monotonic,
+    ):
+        self.interval_s, self.stall_s, self._emit = interval_s, stall_s, emit
+        self._wall, self._mono = wall, mono
+        self._lock = threading.Lock()
+        self._in_flight: dict[str, float] = {}
+        self._last_progress = self._last_wall = wall()
+        self._last_mono = mono()
+        self._next_stall_report = 0.0
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+
+    def started(self, trial_id: str) -> None:
+        with self._lock:
+            self._in_flight[trial_id] = self._wall()
+
+    def finished(self, trial_id: str) -> None:
+        with self._lock:
+            self._in_flight.pop(trial_id, None)
+            self._last_progress = self._wall()
+
+    def check(self) -> list[str]:
+        wall, mono = self._wall(), self._mono()
+        messages = []
+        with self._lock:
+            slept = (wall - self._last_wall) - (mono - self._last_mono)
+            self._last_wall, self._last_mono = wall, mono
+            if slept > SLEEP_GAP_S:
+                messages.append(
+                    f"  [watchdog] the machine was asleep for about {slept / 60:.0f} min; requests in flight "
+                    "may stall until their timeout"
+                )
+            idle = wall - self._last_progress
+            if self._in_flight and idle >= self.stall_s and wall >= self._next_stall_report:
+                oldest_id, oldest_t = min(self._in_flight.items(), key=lambda kv: kv[1])
+                messages.append(
+                    f"  [watchdog] no trial finished in {idle / 60:.1f} min; {len(self._in_flight)} in flight, "
+                    f"oldest for {(wall - oldest_t) / 60:.1f} min: {oldest_id}"
+                )
+                self._next_stall_report = wall + self.stall_s
+        for message in messages:
+            self._emit(message)
+        return messages
+
+    def _loop(self) -> None:
+        while not self._stop.wait(self.interval_s):
+            self.check()
+
+    def start(self) -> None:
+        self._thread = threading.Thread(target=self._loop, name="cielo-watchdog", daemon=True)
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=5)
+
+
+def _stderr(message: str) -> None:
+    print(message, file=sys.stderr, flush=True)
 
 
 def round_robin(pairs: list[dict[str, Any]], limit: int | None) -> list[dict[str, Any]]:
@@ -231,12 +349,22 @@ def execute_run(spec: RunSpec) -> Path:
         "n_trials_already_done": len(done),
         "max_usd": spec.max_usd,
     }
+    awake = keep_awake(spec.keep_awake and not manifest["any_simulated"] and bool(pending))
+    manifest["keep_awake"] = "caffeinate -i" if awake is not None else None
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     lock = threading.Lock()
     state: dict[str, Any] = {"cost": 0.0, "completed": 0, "errors": 0, "stopped": None}
+    watchdog = Watchdog(interval_s=spec.heartbeat_s, stall_s=spec.stall_warn_s, emit=_stderr)
 
     def run_one(plan: TrialPlan) -> dict[str, Any]:
+        watchdog.started(plan.trial_id)
+        try:
+            return _run_one(plan)
+        finally:
+            watchdog.finished(plan.trial_id)
+
+    def _run_one(plan: TrialPlan) -> dict[str, Any]:
         provider = spec.providers[plan.provider_index]
         pair = golden.pair(plan.pair_id)
         question = GoldenSet.question(pair, plan.premise, plan.pressure, plan.lang)
@@ -277,26 +405,35 @@ def execute_run(spec: RunSpec) -> Path:
             state["completed"] += 1
             state["errors"] += bool(record.get("error"))
             state["cost"] += record.get("cost_usd") or 0.0
-            if spec.progress and (state["completed"] % 200 == 0 or state["completed"] == len(pending)):
+            if spec.progress and (state["completed"] % PROGRESS_EVERY == 0 or state["completed"] == len(pending)):
                 print(
                     f"  [{state['completed']}/{len(pending)}] trials done, cost so far "
                     f"US${state['cost']:.4f}, errors {state['errors']}",
                     file=sys.stderr,
+                    flush=True,
                 )
 
-    with ThreadPoolExecutor(max_workers=max(1, spec.workers)) as pool:
-        in_flight: set[Future[dict[str, Any]]] = set()
-        for plan in pending:
-            if spec.max_usd is not None and state["cost"] >= spec.max_usd:
-                state["stopped"] = f"budget of US${spec.max_usd} reached"
-                break
-            in_flight.add(pool.submit(run_one, plan))
-            if len(in_flight) >= max(1, spec.workers):
-                finished, in_flight = wait(in_flight, return_when=FIRST_COMPLETED)
-                for future in finished:
-                    record_done(future.result())
-        for future in in_flight:
-            record_done(future.result())
+    if spec.progress:
+        watchdog.start()
+    try:
+        with ThreadPoolExecutor(max_workers=max(1, spec.workers)) as pool:
+            in_flight: set[Future[dict[str, Any]]] = set()
+            for plan in pending:
+                if spec.max_usd is not None and state["cost"] >= spec.max_usd:
+                    state["stopped"] = f"budget of US${spec.max_usd} reached"
+                    break
+                in_flight.add(pool.submit(run_one, plan))
+                if len(in_flight) >= max(1, spec.workers):
+                    finished, in_flight = wait(in_flight, return_when=FIRST_COMPLETED)
+                    for future in finished:
+                        record_done(future.result())
+            for future in in_flight:
+                record_done(future.result())
+    finally:
+        watchdog.stop()
+        if awake is not None:
+            awake.terminate()
+            awake.wait(timeout=5)
 
     tool_executor = executors.get("tool")
     manifest.update(
