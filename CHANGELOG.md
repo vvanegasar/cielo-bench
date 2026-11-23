@@ -5,6 +5,46 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-23
+
+Packaging and documentation only. The golden sets (same SHA-256), the metric definitions and the results are unchanged: `cielo-bench report` rebuilds `REPORT.md` and `summary.json` of every versioned run byte for byte. The MCP server is released with it as `cielo-mcp` 0.1.1.
+
+### Added
+
+- **`pip install cielo-bench` works offline outside the repository.** The wheel now ships both golden sets and the Horizons and tabular fixtures, so `verify`, simulated runs and `report` need neither the repository nor the network.
+  - The build maps `evals/golden` and `evals/fixtures` into the package as `cielo_bench/_data` (`pyproject.toml`). Nothing moves in the repository.
+  - Installed, the code reads its data from the package and uses the working directory for `results/` and `.env`. From a checkout nothing changes.
+  - Run manifests record golden sets as the repository names them (`evals/golden/…`) in both layouts, so existing manifests keep working.
+- **`pip install cielo-mcp`** installs the MCP server together with the core.
+- **Publishing workflow** `.github/workflows/publish.yml`, on a published release or by hand.
+  - It builds the sdist and the wheel of both packages, runs `twine check`, installs the wheels into a clean virtual environment and runs `verify` for every domain and a simulated run there.
+  - It then publishes to PyPI with Trusted Publishing: `cielo-bench` (environment `pypi`) first, then `cielo-mcp` (environment `pypi-mcp`).
+- **MCP Registry entry** `server/server.json` (`io.github.vvanegasar/cielo-mcp`, package type `pypi`), and the `mcp-name` line in the server's README that the registry checks.
+- **Install section** in both READMEs, with the Claude Desktop configuration, and a link to the technical report (doi:10.5281/zenodo.24481194).
+- **Tests for the installed package**: data resolution in both layouts, a run that records and reloads the repository path, and a build of the real sdist and wheel whose installed code runs `verify` and a simulated run outside the repository.
+
+### Changed
+
+- **Packages.** `cielo-bench` 1.1.1 and `cielo-mcp` 0.1.1.
+  - Both have a PyPI README with absolute links, a license file, classifiers, keywords and project URLs.
+  - The server's author is Valentina Vanegas Aristizábal.
+  - The server declares the core, `cielo-bench>=1.1.1,<1.2`, instead of asking for it to be installed first (amendment to ADR-0007).
+  - The `dev` extra adds `setuptools`, used by the packaging tests.
+- **Run records from an installed wheel** give the commit as `no-commit`. The code is identified by `code_version`, and a git repository in the working directory is not the code that ran.
+- `CITATION.cff` and `.zenodo.json` are at 1.1.1, and `.zenodo.json` links the technical report.
+
+### Fixed
+
+Wording only; no number changed.
+
+- **Results note, §3, "What depends on the template".** The bullet on template-level tests now says that neither model's effect is significant outside `sets_first` (sign test p = 0.12 for Haiku and 0.062 for Sonnet), and that on the full set the template-level tests give p = 0.062 (Haiku) and 0.031 (Sonnet).
+- **Results note, tabular verification.** The reason the evidence rule did not count a check is stated for the six cases read by hand (audit rows A15 to A20), not for all 109.
+- **Results note, §7.**
+  - The lower no-tool agreement figures are marked as coming from the post hoc analysis in §3.
+  - Under faults, the models "abstained without giving a value" (70% and 74%; Haiku on company data, 92%) instead of "reported the failure", and otherwise "gave a verdict or a value anyway".
+- **EVALS.md, §7.** "Eight clusters" becomes "Few clusters (18 templates in astronomy, 7 in tabular)".
+- **Benchmark card.** The sentence "No funding." is removed from the creator line.
+
 ## [1.1.0] - 2026-11-23
 
 First real-model results. Both golden sets are unchanged from 1.0.0 (same SHA-256), and so are the metric definitions. One scorer bug was fixed so that the scores follow those definitions (see Fixed).
@@ -93,6 +133,7 @@ First public release. No real-model results are included yet: every number in th
 - **CI.** Python 3.11–3.13 for the benchmark and 3.12–3.13 for the server. No secrets and no model calls.
 - **Documentation.** `docs/EVALS.md`, `docs/ARCHITECTURE.md`, `docs/TOOLS.md`, `docs/DOMAINS.md`, `docs/BENCHMARK_CARD.md`, ADR-0005, ADR-0006 and ADR-0007, `CONTRIBUTING.md` and `CITATION.cff`.
 
-[Unreleased]: https://github.com/vvanegasar/cielo-bench/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/vvanegasar/cielo-bench/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/vvanegasar/cielo-bench/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/vvanegasar/cielo-bench/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/vvanegasar/cielo-bench/releases/tag/v1.0.0
