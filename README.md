@@ -192,6 +192,7 @@ Pending first real-model runs (planned before 2026-12-06). No numbers are shown 
 - **Simulated agents** are deterministic: the same transcripts come out with any number of workers.
 - **Live responses** go to `CIELO_CACHE_DIR` (default `~/.cache/cielo-bench`), never to the committed fixtures.
 - **What gets versioned.** Simulated runs are not committed. Real runs keep `REPORT.md`, `summary.json`, `manifest.json`, `figures/` and `trials.jsonl.gz`.
+- **Published transcripts are sanitized.** `cielo-bench pack` replaces thinking-block signatures with `"<stripped>"` and the message and tool-use ids issued by the provider with ids derived from the trial id. Signatures and provider ids are opaque tokens that could tie a transcript to the account that ran it. Scoring reads neither, so reports rebuilt from `trials.jsonl.gz` are identical to those from the raw `trials.jsonl`, which stays local.
 
 ## Documentation
 

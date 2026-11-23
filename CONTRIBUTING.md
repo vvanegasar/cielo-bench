@@ -31,7 +31,7 @@ CI runs the same steps on Python 3.11, 3.12 and 3.13, without secrets and withou
 - **Respect upstream terms.** JPL Horizons gets one request at a time, cached, and is credited. New upstream sources need an ADR and a check of their terms.
 - **Fixtures are read-only.** Only `cielo-bench build-golden` writes to `evals/fixtures/`. Live responses go to `CIELO_CACHE_DIR` (default `~/.cache/cielo-bench`).
 - **Simulated numbers are never results.** Reports of simulated runs say so in every table. Do not present them as model results.
-- **Results policy.** Simulated runs are not versioned. For a real run, version `REPORT.md`, `summary.json`, `manifest.json`, `figures/` and `trials.jsonl.gz` (`cielo-bench pack <run>`). The interpretation section of a report is written by a person.
+- **Results policy.** Simulated runs are not versioned. For a real run, version `REPORT.md`, `summary.json`, `manifest.json`, `figures/` and `trials.jsonl.gz` (`cielo-bench pack <run>`). Never version the raw `trials.jsonl` or the run's `cache/`: `pack` strips thinking-block signatures and replaces provider message and tool-use ids, and only the packed file is published. The interpretation of a report is written by a person, in a results note under `docs/results/`.
 
 ## Adding a domain
 

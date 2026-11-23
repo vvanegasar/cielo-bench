@@ -20,9 +20,10 @@ htmlcov/
 build/
 *.egg-info/
 
-# eval outputs. Results policy (see README, "Results policy"): simulated runs are not versioned (CI and
-# `cielo-bench reproduce --simulated` regenerate them). Real runs keep REPORT.md, summary.json,
-# manifest.json, figures/ and trials.jsonl.gz (`cielo-bench pack`); the rest stays local.
+# eval outputs. Results policy (README, "Reproducibility"; CONTRIBUTING, "Results policy"): simulated
+# runs are not versioned (CI and `cielo-bench reproduce --simulated` regenerate them). Real runs keep
+# REPORT.md, summary.json, manifest.json, figures/ and trials.jsonl.gz (`cielo-bench pack`, which strips
+# thinking signatures and provider ids); the raw trials.jsonl, scores.jsonl and cache/ stay local.
 evals/runs/
 results/*-simulated/
 results/*/trials.jsonl

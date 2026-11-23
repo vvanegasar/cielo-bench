@@ -192,6 +192,7 @@ Primeras corridas con modelos reales pendientes (previstas before 2026-12-06). N
 - **Agentes simulados** deterministas: las transcripciones salen iguales con cualquier número de trabajadores.
 - **Respuestas en vivo:** van a `CIELO_CACHE_DIR` (por defecto `~/.cache/cielo-bench`), nunca a los fixtures del repositorio.
 - **Qué se versiona.** Las corridas simuladas no se versionan. De las reales se guardan `REPORT.md`, `summary.json`, `manifest.json`, `figures/` y `trials.jsonl.gz`.
+- **Las transcripciones publicadas van depuradas.** `cielo-bench pack` reemplaza las firmas de los bloques de razonamiento por `"<stripped>"` y los identificadores de mensajes y de llamadas a herramientas que asigna el proveedor por identificadores derivados del ensayo. Firmas e identificadores son fichas opacas que podrían vincular una transcripción con la cuenta que la produjo. La calificación no lee ninguno de los dos, así que los reportes reconstruidos desde `trials.jsonl.gz` son idénticos a los del `trials.jsonl` crudo, que se queda local.
 
 ## Documentación
 

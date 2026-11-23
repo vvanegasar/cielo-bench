@@ -8,8 +8,10 @@ table caption says so.
 from __future__ import annotations
 
 import gzip
+import hashlib
 import json
 import os
+import re
 import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -47,13 +49,56 @@ def read_trials(run_dir: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in text.splitlines() if line.strip()]
 
 
+STRIPPED = "<stripped>"
+# Provider-issued ids that appear as whole JSON strings: messages, tool uses, server tool uses.
+_PROVIDER_ID_RE = re.compile(r'"((?:msg|toolu|srvtoolu)_[0-9A-Za-z]+)"')
+
+
+def sanitize_line(line: str) -> str:
+    """One transcript line, ready to publish.
+
+    * Thinking-block signatures (and redacted-thinking data) are opaque provider tokens that can tie
+      a transcript to the account that produced it: they are replaced by ``"<stripped>"``.
+    * Message and tool-use ids issued by the provider are replaced by ids derived only from the
+      trial id and their order of appearance, so tool calls still pair with their results.
+
+    Nothing that scoring reads is changed, so reports from packed and raw transcripts are identical.
+    The function is idempotent.
+    """
+    record = json.loads(line)
+    for rnd in record.get("rounds") or []:
+        for block in (rnd.get("response") or {}).get("content") or []:
+            if not isinstance(block, dict):
+                continue
+            if "signature" in block:
+                block["signature"] = STRIPPED
+            if block.get("type") == "redacted_thinking" and "data" in block:
+                block["data"] = STRIPPED
+    text = json.dumps(record, ensure_ascii=False)
+    mapping: dict[str, str] = {}
+
+    def replace(match: re.Match[str]) -> str:
+        original = match.group(1)
+        if original not in mapping:
+            prefix = original.split("_", 1)[0]
+            digest = hashlib.sha256(f"{record.get('trial_id')}|{len(mapping)}".encode()).hexdigest()[:24]
+            mapping[original] = f"{prefix}_{digest}"
+        return f'"{mapping[original]}"'
+
+    return _PROVIDER_ID_RE.sub(replace, text)
+
+
 def pack_run(run_dir: Path) -> Path:
-    """Compress ``trials.jsonl`` to ``trials.jsonl.gz`` (deterministic bytes) and check the copy."""
+    """Write ``trials.jsonl.gz`` for versioning: sanitized (``sanitize_line``), deterministic bytes, checked."""
     plain = run_dir / "trials.jsonl"
-    data = plain.read_bytes()
+    lines = [line for line in plain.read_text(encoding="utf-8").splitlines() if line.strip()]
+    clean = "".join(sanitize_line(line) + "\n" for line in lines).encode("utf-8")
     packed = run_dir / "trials.jsonl.gz"
-    packed.write_bytes(gzip.compress(data, compresslevel=9, mtime=0))
-    if gzip.decompress(packed.read_bytes()) != data:
+    packed.write_bytes(gzip.compress(clean, compresslevel=9, mtime=0))
+    copy = gzip.decompress(packed.read_bytes())
+    if copy != clean or [json.loads(x)["trial_id"] for x in copy.decode("utf-8").splitlines()] != [
+        json.loads(x)["trial_id"] for x in lines
+    ]:
         raise OSError(f"packed copy of {plain} does not match")
     return packed
 

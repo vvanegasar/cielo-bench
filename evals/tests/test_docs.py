@@ -139,6 +139,94 @@ def test_pack_and_report_from_the_packed_transcripts(domain, golden, tmp_path):
     assert build_report(run_dir).exists()
 
 
+class _ToolThenAnswer:
+    """A mocked Anthropic API that thinks, calls a tool once, then answers; with provider ids."""
+
+    def __init__(self, pair):
+        self.pair, self.calls = pair, 0
+
+    def __call__(self, request):
+        import httpx
+
+        self.calls += 1
+        body = json.loads(request.content)
+        thinking = {"type": "thinking", "thinking": "", "signature": f"EqSecretSignature{self.calls}xyz=="}
+        if len(body["messages"]) == 1:
+            call = self.pair["expected_calls"][0]
+            content = [
+                thinking,
+                {
+                    "type": "tool_use",
+                    "id": "toolu_01AbCdEfGhIjKlMnOpQrStUv",
+                    "name": call["tool"],
+                    "input": call["args"],
+                },
+            ]
+            stop = "tool_use"
+        else:
+            content = [thinking, {"type": "text", "text": "Checked.\nVERDICT: FALSE"}]
+            stop = "end_turn"
+        data = {
+            "id": f"msg_01Provider{self.calls}Issued",
+            "model": "claude-opus-5-5",
+            "stop_reason": stop,
+            "usage": {"input_tokens": 50, "output_tokens": 10},
+            "content": content,
+        }
+        return httpx.Response(200, json=data)
+
+
+def test_pack_strips_signatures_and_provider_ids_without_changing_scores(domain, golden, tmp_path):
+    import gzip
+
+    import httpx
+
+    from cielo_bench.providers.anthropic import AnthropicProvider
+    from cielo_bench.report import STRIPPED, sanitize_line
+
+    pair = next(p for p in golden.pairs if p["template"] == "rise_time")
+    api = _ToolThenAnswer(pair)
+    provider = AnthropicProvider(
+        api_key="sk-test",
+        model="claude-opus-5-5",
+        transport=httpx.MockTransport(api),
+        sleep=lambda s: None,
+        requests_per_minute=None,
+    )
+    spec = RunSpec(
+        domain=domain,
+        golden=golden,
+        providers=[provider],
+        out_dir=tmp_path / "real",
+        run_id="real-pack",
+        simulated=False,
+        conditions=("tool",),
+        premises=("false",),
+        pressures=("neutral",),
+        limit_pairs=1,
+        progress=False,
+    )
+    run_dir = execute_run(spec)
+    raw = (run_dir / "trials.jsonl").read_text()
+    assert "EqSecretSignature" in raw and "msg_01Provider" in raw and "toolu_01AbCd" in raw
+    raw_report = build_report(run_dir).read_text()
+    raw_summary = (run_dir / "summary.json").read_text()
+
+    packed = gzip.decompress(pack_run(run_dir).read_bytes()).decode()
+    assert "EqSecretSignature" not in packed and "msg_01Provider" not in packed and "toolu_01AbCd" not in packed
+    record = json.loads(packed.splitlines()[0])
+    first, last = record["rounds"]
+    assert first["response"]["content"][0]["signature"] == STRIPPED
+    new_id = first["response"]["content"][1]["id"]
+    assert new_id.startswith("toolu_") and new_id == first["tool_calls"][0]["id"] == first["tool_results"][0]["id"]
+    assert first["response"]["id"] != last["response"]["id"] and last["response"]["id"].startswith("msg_")
+    assert sanitize_line(packed.splitlines()[0]) == packed.splitlines()[0]  # idempotent
+
+    (run_dir / "trials.jsonl").unlink()  # as in a fresh clone: only the packed transcripts
+    assert build_report(run_dir).read_text() == raw_report
+    assert (run_dir / "summary.json").read_text() == raw_summary
+
+
 def test_every_registered_domain_is_documented():
     golden = docs.golden_block("en")
     for name in AVAILABLE:
