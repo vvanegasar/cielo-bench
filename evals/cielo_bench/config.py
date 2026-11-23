@@ -1,4 +1,19 @@
-"""Paths, local settings and run metadata shared by every domain."""
+"""Paths, local settings and run metadata shared by every domain.
+
+The code runs in one of two layouts:
+
+* **Checkout** (the repository, ``pip install -e .``, or ``pythonpath = evals``). The golden sets
+  and fixtures are read where the repository keeps them, ``evals/golden`` and ``evals/fixtures``,
+  and the project is the repository root.
+* **Installed** from a wheel (``pip install cielo-bench``). The wheel carries the same files in
+  ``cielo_bench/_data/{golden,fixtures}``: the build maps the repository's directories there
+  (``pyproject.toml``, ``[tool.setuptools.package-dir]``), so nothing is moved or copied in the
+  repository. The project is the working directory: ``results/`` and ``.env`` are looked up there.
+
+Run manifests always record golden sets as the repository names them
+(``evals/golden/astronomy-v1/golden.json``), whichever layout wrote them: ``data_path`` turns such a
+path back into a file, and ``data_relpath`` names a packaged file the same way.
+"""
 
 from __future__ import annotations
 
@@ -9,10 +24,30 @@ from pathlib import Path
 
 from . import __version__
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PACKAGE_DIR = Path(__file__).resolve().parent
+PACKAGED_DATA_DIR = PACKAGE_DIR / "_data"  # only in a built wheel
+DATA_KINDS = ("golden", "fixtures")  # the subdirectories of evals/ that a wheel ships
+
+
+def is_installed(package_dir: Path = PACKAGE_DIR) -> bool:
+    """True when the package runs from a built wheel, which carries its data in ``_data/``."""
+    return (package_dir / "_data").is_dir()
+
+
+def _working_dir() -> Path:
+    try:
+        return Path.cwd().resolve()
+    except OSError:  # the working directory no longer exists
+        return Path.home()
+
+
+INSTALLED = is_installed()
+PROJECT_ROOT = _working_dir() if INSTALLED else PACKAGE_DIR.parents[1]
+CODE_ROOT: Path | None = None if INSTALLED else PROJECT_ROOT  # the git checkout the code runs from
 EVALS_DIR = PROJECT_ROOT / "evals"
-GOLDEN_DIR = EVALS_DIR / "golden"
-FIXTURES_DIR = EVALS_DIR / "fixtures"
+DATA_DIR = PACKAGED_DATA_DIR if INSTALLED else EVALS_DIR  # holds golden/ and fixtures/
+GOLDEN_DIR = DATA_DIR / "golden"
+FIXTURES_DIR = DATA_DIR / "fixtures"
 DRY_RUNS_DIR = EVALS_DIR / "runs"  # git-ignored scratch runs (dry runs)
 RESULTS_DIR = PROJECT_ROOT / "results"
 RUNS_DIR = RESULTS_DIR / "runs"  # real runs: raw outputs meant to be committed
@@ -21,6 +56,32 @@ ENV_FILE = PROJECT_ROOT / ".env"
 ENV_PREFIX = "CIELO_"
 DEFAULT_USER_AGENT = f"cielo-bench/{__version__} (non-commercial research benchmark)"
 NO_COMMIT = "no-commit"
+
+
+def data_path(relpath: str | Path) -> Path:
+    """The file behind a project-relative path as run manifests record it.
+
+    ``evals/golden/…`` and ``evals/fixtures/…`` resolve to the data this code runs with: the
+    repository's files in a checkout, the packaged copy when installed. Other paths are relative to
+    the project.
+    """
+    rel = Path(relpath)
+    parts = rel.parts
+    if not rel.is_absolute() and len(parts) > 2 and parts[0] == "evals" and parts[1] in DATA_KINDS:
+        return DATA_DIR.joinpath(*parts[1:])
+    return PROJECT_ROOT / rel
+
+
+def data_relpath(path: Path) -> str | None:
+    """``evals/golden/…`` or ``evals/fixtures/…`` for a file inside the installed package's data,
+    named as in the repository; None for any other path."""
+    try:
+        rel = Path(path).resolve().relative_to(PACKAGED_DATA_DIR)
+    except ValueError:
+        return None
+    if not rel.parts or rel.parts[0] not in DATA_KINDS:
+        return None
+    return Path("evals", rel).as_posix()
 
 
 def parse_env_file(path: Path) -> dict[str, str]:
@@ -81,11 +142,15 @@ def user_agent(settings: Mapping[str, str] | None = None) -> str:
     return DEFAULT_USER_AGENT
 
 
-def git_commit(root: Path = PROJECT_ROOT) -> str:
+def git_commit(root: Path | None = CODE_ROOT) -> str:
     """Short commit of the project repo, with -dirty if there are local changes.
 
-    Returns ``no-commit`` when the project is not (yet) its own git repository.
+    Returns ``no-commit`` when the project is not (yet) its own git repository, and when the code
+    runs from an installed wheel (``code_version`` then identifies it), whatever the working
+    directory is.
     """
+    if root is None:
+        return NO_COMMIT
     try:
         top = subprocess.run(
             ["git", "-C", str(root), "rev-parse", "--show-toplevel"],

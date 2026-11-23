@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from ...config import FIXTURES_DIR, GOLDEN_DIR, PROJECT_ROOT
+from ...config import FIXTURES_DIR, GOLDEN_DIR, PROJECT_ROOT, data_relpath
 from ...domain import Domain, Evidence, ToolEvent
 from .evidence import read_evidence
 from .generate import file_sha256, manifest, write_database
@@ -69,6 +69,9 @@ class TabularDomain(Domain):
 
     @property
     def db_relpath(self) -> str:
+        packaged = data_relpath(self.db_path)  # an installed package names it as the repository does
+        if packaged is not None:
+            return packaged
         try:
             return str(self.db_path.resolve().relative_to(PROJECT_ROOT))
         except ValueError:

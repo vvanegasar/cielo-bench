@@ -17,7 +17,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from .config import PROJECT_ROOT, git_commit
+from .config import PROJECT_ROOT, data_path, git_commit
 from .domains import get_domain
 from .golden import GoldenSet, load_golden
 from .metrics import compute
@@ -111,7 +111,7 @@ def load_run(run_dir: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
 def score_run(run_dir: Path) -> tuple[dict[str, Any], list[dict[str, Any]], GoldenSet]:
     manifest, trials = load_run(run_dir)
     domain = get_domain(manifest["domain"])
-    golden = load_golden(PROJECT_ROOT / manifest["golden"]["path"])
+    golden = load_golden(data_path(manifest["golden"]["path"]))
     if golden.sha256 != manifest["golden"]["sha256"]:
         raise ValueError("the golden set changed since this run (hash mismatch); rerun or restore it")
     latest: dict[str, dict[str, Any]] = {}

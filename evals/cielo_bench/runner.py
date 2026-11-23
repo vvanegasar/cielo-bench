@@ -39,7 +39,7 @@ from typing import Any
 
 from . import __version__
 from .agent import run_conversation
-from .config import PROJECT_ROOT, git_commit, user_agent
+from .config import PROJECT_ROOT, data_relpath, git_commit, user_agent
 from .domain import FAULT_KINDS, Domain, ToolExecutor
 from .golden import LANGS, PRESSURES, GoldenSet
 from .pricing import PRICES_AS_OF, cost_usd, price_for
@@ -271,6 +271,11 @@ def _iso(dt: datetime) -> str:
 
 
 def relative(path: Path) -> str:
+    """A path as run manifests record it: relative to the project. A golden set read from an
+    installed package is recorded where the repository keeps it (``evals/golden/…``)."""
+    packaged = data_relpath(path)
+    if packaged is not None:
+        return packaged
     try:
         return str(path.resolve().relative_to(PROJECT_ROOT))
     except ValueError:

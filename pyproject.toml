@@ -46,14 +46,37 @@ Documentation = "https://github.com/vvanegasar/cielo-bench/tree/main/docs"
 Changelog = "https://github.com/vvanegasar/cielo-bench/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
-dev = ["pytest>=8,<10", "pytest-cov>=5", "ruff>=0.8"]
+# setuptools: evals/tests/test_packaging.py builds the sdist and the wheel (same floor as [build-system])
+dev = ["pytest>=8,<10", "pytest-cov>=5", "ruff>=0.8", "setuptools>=77"]
 
 [project.scripts]
 cielo-bench = "cielo_bench.cli:main"
 
-[tool.setuptools.packages.find]
-where = ["evals"]
-include = ["cielo_bench*"]
+# The code lives in evals/cielo_bench. The golden sets and fixtures stay where the repository and the
+# run manifests keep them (evals/golden, evals/fixtures); the build maps those two directories into the
+# wheel as cielo_bench/_data/golden and cielo_bench/_data/fixtures (resolution: cielo_bench/config.py).
+# The list is explicit because a mapped data package cannot be discovered; a test checks that it names
+# every code package (evals/tests/test_packaging.py).
+[tool.setuptools]
+include-package-data = false  # only the package-data patterns below
+packages = [
+  "cielo_bench",
+  "cielo_bench.domains",
+  "cielo_bench.domains.astronomy",
+  "cielo_bench.domains.tabular",
+  "cielo_bench.providers",
+  "cielo_bench._data.golden",
+  "cielo_bench._data.fixtures",
+]
+
+[tool.setuptools.package-dir]
+"" = "evals"
+"cielo_bench._data.golden" = "evals/golden"
+"cielo_bench._data.fixtures" = "evals/fixtures"
+
+[tool.setuptools.package-data]
+"cielo_bench._data.golden" = ["*/golden.json"]
+"cielo_bench._data.fixtures" = ["**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["evals/tests"]
