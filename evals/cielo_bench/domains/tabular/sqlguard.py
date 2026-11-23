@@ -204,6 +204,11 @@ def connect(path: Path, limits: Limits) -> sqlite3.Connection:
         con = sqlite3.connect(uri, uri=True, isolation_level=None, check_same_thread=False)
     except sqlite3.Error as exc:
         raise DatabaseUnavailable("connection_failed", str(exc)) from exc
+    return guard(con, limits)
+
+
+def guard(con: sqlite3.Connection, limits: Limits) -> sqlite3.Connection:
+    """Install layers 2 to 4 on an open connection: query_only, the resource limits and the authorizer."""
     try:
         con.execute("PRAGMA query_only = ON")
         con.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, 1_000_000)
