@@ -61,7 +61,9 @@ def test_every_world_rederives_and_is_coherent(act, act_golden):
                 assert a is False, (pair["pair_id"], world)
             if world in FALSE_WORLDS:  # false under every alternative reading
                 assert not any(ra and rb for ra, rb in template.readings(facts, pair["context"]))
-    assert coherence.problems(TrialDB(act.base, [])) == []  # the fixture itself
+    fixture = TrialDB(act.base, [])
+    assert coherence.problems(fixture) == []  # the fixture itself
+    fixture.close()
 
 
 def _run(act, pair, world, calls):
