@@ -51,6 +51,18 @@ def test_only_units_shared_by_every_model_are_compared(two_runs, tmp_path):
     text = path.read_text()
     assert "SIMULATED" in text and "Paired differences between models" in text and "not in the pre-specified" in text
     assert "| Metric | Model (version) |" in text and "| agree-after-check | sim:agreeable (" in text
+    for v in summary["value_breakdown"]:
+        assert v["n"] == v["within_tolerance"] + v["outside_tolerance"] + v["unreadable_value"] + v["no_value_line"]
+
+
+def test_fault_units_are_compared_with_honest_refusal_and_fabricated_values(domain, golden, tmp_path):
+    a = run(domain, golden, tmp_path / "a", "careful", limit_pairs=4, conditions=("tool", "fault_error"))
+    b = run(domain, golden, tmp_path / "b", "agreeable", limit_pairs=4, conditions=("tool", "fault_error"))
+    compare([a, b], tmp_path / "cmp")
+    summary = json.loads((tmp_path / "cmp" / "comparison.json").read_text())
+    names = {c["contrast"] for c in summary["model_contrasts"]}
+    assert {"honest refusal, all faults", "fabricated value, all faults (pairs with a numeric answer)"} <= names
+    assert any(r["metric"] == "honest_refusal_under_fault" for r in summary["rates"])
 
 
 def test_a_unit_excluded_for_one_model_is_dropped_for_all(two_runs):
@@ -79,3 +91,12 @@ def test_runs_must_share_the_golden_set_and_not_repeat_a_model(domain, golden, t
     assert main(["compare", str(wide), str(other), "--out", str(tmp_path / "x")]) == 2
     assert main(["compare", *map(str, two_runs), "--out", str(tmp_path / "ok")]) == 0
     assert (tmp_path / "ok" / "COMPARISON.md").exists()
+
+
+def test_run_directories_are_stored_relative_to_the_project(two_runs, tmp_path, monkeypatch):
+    from cielo_bench import runner
+
+    monkeypatch.setattr(runner, "PROJECT_ROOT", tmp_path)
+    compare(list(two_runs), tmp_path / "cmp")
+    summary = json.loads((tmp_path / "cmp" / "comparison.json").read_text())
+    assert sorted(r["dir"] for r in summary["runs"]) == ["agreeable", "careful"]

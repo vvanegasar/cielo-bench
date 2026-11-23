@@ -28,6 +28,7 @@ from typing import Any
 
 from .metrics import compute
 from .report import RATE_HEADERS, _ci_pp, _p, _pct, _pp, _rate_rows, _table, score_run
+from .runner import relative
 from .stats import holm, paired_difference
 
 Row = dict[str, Any]
@@ -95,6 +96,23 @@ def model_contrasts(rows: list[Row]) -> list[dict[str, Any]]:
                 False,
             ),
         ]
+    faults = [c for c in conditions if c.startswith("fault_")]
+    if faults:
+        numeric_pairs = {r["pair_id"] for r in rows if r["value_kind"] is not None}
+        specs += [
+            (
+                "honest refusal, all faults",
+                lambda u: u[4].startswith("fault_"),
+                lambda r: int(bool(r["honest_refusal"])),
+                False,
+            ),
+            (
+                "fabricated value, all faults (pairs with a numeric answer)",
+                lambda u: u[4].startswith("fault_") and u[0] in numeric_pairs,
+                lambda r: int(bool(r["value_stated"])),
+                False,
+            ),
+        ]
     out = []
     for a, b in itertools.combinations(models, 2):
         for name, keep, outcome, both_evidence in specs:
@@ -116,6 +134,31 @@ def model_contrasts(rows: list[Row]) -> list[dict[str, Any]]:
     return out
 
 
+def value_breakdown(rows: list[Row]) -> list[dict[str, Any]]:
+    """Why values miss, per model and condition (units with a numeric answer): a value within
+    tolerance, a value outside it, a VALUE line without a readable value, or no VALUE line.
+    "Value within tolerance" counts the last two as wrong; the split tells them apart."""
+    out = []
+    for (model, condition), group in sorted(
+        Counter((r["model"], r["condition"]) for r in rows if r["value_kind"] is not None).items()
+    ):
+        sub = [r for r in rows if r["model"] == model and r["condition"] == condition and r["value_kind"] is not None]
+        out.append(
+            {
+                "model": model,
+                "condition": condition,
+                "n": group,
+                "within_tolerance": sum(1 for r in sub if r["value_within_tol"]),
+                "outside_tolerance": sum(
+                    1 for r in sub if r["value_reported"] is not None and not r["value_within_tol"]
+                ),
+                "unreadable_value": sum(1 for r in sub if r["value_reported"] is None and r["value_stated"]),
+                "no_value_line": sum(1 for r in sub if not r["value_stated"]),
+            }
+        )
+    return out
+
+
 def compare(run_dirs: list[Path], out_dir: Path) -> Path:
     manifests, rows = load_runs(run_dirs)
     matched, counts = match(rows)
@@ -134,6 +177,7 @@ def compare(run_dirs: list[Path], out_dir: Path) -> Path:
         n_templates=len(templates),
     )
     contrasts = model_contrasts(matched)
+    values = value_breakdown(matched)
     design = {
         "unit": list(UNIT),
         "conditions": sorted({r["condition"] for r in matched}),
@@ -146,7 +190,7 @@ def compare(run_dirs: list[Path], out_dir: Path) -> Path:
     }
     runs = [
         {
-            "dir": str(m["_dir"]),
+            "dir": relative(Path(m["_dir"])),
             "run_id": m["run_id"],
             "models": [d["label"] for d in m["models"]],
             "created_at_cot": m.get("created_at_cot"),
@@ -162,6 +206,7 @@ def compare(run_dirs: list[Path], out_dir: Path) -> Path:
         "counts": counts,
         "rates": metrics["rates"],
         "model_contrasts": contrasts,
+        "value_breakdown": values,
         "simulated": metrics["simulated"],
     }
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -180,6 +225,9 @@ def _overview(rates: list[dict[str, Any]]) -> list[tuple[str, list[list[str]]]]:
         ("user correction", _rate_rows(rates, "user_correction", pressure=None)),
         ("accurate correction", _rate_rows(rates, "accurate_correction")),
         ("value within tolerance", _rate_rows(rates, "value_accuracy_at_tol")),
+        ("honest refusal under fault", _rate_rows(rates, "honest_refusal_under_fault")),
+        ("hallucination under fault", _rate_rows(rates, "hallucination_under_fault")),
+        ("fabricated value under fault", _rate_rows(rates, "fabricated_value_under_fault")),
     ]
 
 
@@ -234,6 +282,32 @@ def render(summary: dict[str, Any]) -> str:
         _table(["Metric", *RATE_HEADERS], [[label, *row] for label, rows in _overview(rates) for row in rows]),
         "",
         stamp,
+        "",
+        "Value within tolerance counts a missing VALUE line as wrong. The split below separates the two:",
+        "",
+        _table(
+            [
+                "Model",
+                "Condition",
+                "Units with a numeric answer (n)",
+                "Within tolerance",
+                "Outside tolerance",
+                "VALUE line without a readable value",
+                "No VALUE line",
+            ],
+            [
+                [
+                    v["model"],
+                    v["condition"],
+                    str(v["n"]),
+                    str(v["within_tolerance"]),
+                    str(v["outside_tolerance"]),
+                    str(v["unreadable_value"]),
+                    str(v["no_value_line"]),
+                ]
+                for v in summary["value_breakdown"]
+            ],
+        ),
         "",
         "## 2. agree-after-check by pressure",
         "",
