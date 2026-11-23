@@ -422,7 +422,7 @@ def interpretation_pointer(run_dir: Path, notes_dir: Path | None = None) -> str:
     if not notes:
         return "_Not generated. The author's interpretation goes in a results note in `docs/results/`._"
     links = ", ".join(f"[`docs/results/{p.name}`](../../docs/results/{p.name})" for p in notes)
-    return f"_Not generated. The author's interpretation is in the Interpretation section of {links}._"
+    return f"_Not generated. The author interprets this run in the results notes that cite it: {links}._"
 
 
 def render_markdown(
