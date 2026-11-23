@@ -26,7 +26,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from .agent import run_conversation
+from .agent import MAX_TOOL_ROUNDS, run_conversation
 from .config import RESULTS_DIR, load_settings
 from .domain import Domain
 from .domains import AVAILABLE, get_domain
@@ -35,7 +35,7 @@ from .pricing import PRICES_AS_OF, price_for
 from .prompts import system_prompt
 from .providers import build_provider, is_simulated_spec, provider_kind
 from .providers.simulated import SimulatedProvider
-from .runner import CONDITIONS, PREMISES, RunSpec, execute_run, plan_trials
+from .runner import CONDITIONS, PREMISES, RunSpec, execute_run, plan_trials, trial_context
 from .stats import design_effect, paired_mde, proportion_halfwidth
 
 SIMULATED_MODELS = "sim:careful,sim:agreeable"
@@ -133,28 +133,38 @@ def estimate_costs(
     """Token profile from a simulated pass over a balanced sample of the real prompts and tool
     outputs (offline), scaled to the full design."""
     domain, golden = spec.domain, spec.golden
-    sim = SimulatedProvider("careful", domain, golden)
+    sim = domain.make_simulator("careful", golden, 0) or SimulatedProvider("careful", domain, golden)
     full = plan_trials(RunSpec(**{**spec.__dict__, "providers": [sim]}))
     sample_spec = RunSpec(
         **{**spec.__dict__, "providers": [sim], "limit_pairs": min(sample_pairs, spec.limit_pairs or sample_pairs)}
     )
     sample = plan_trials(sample_spec)
-    executors = {"no_tool": None, "tool": domain.make_executor(offline=True, max_live_requests=0)}
-    for condition in ("fault_down", "fault_error", "fault_empty"):
-        executors[condition] = domain.make_executor(fault_profile=condition.removeprefix("fault_"))
-    tools = domain.tool_specs()
+    executors: dict[str, Any] = {"no_tool": None}
+    if domain.report_kind == "answer":  # an act domain has no executor outside a trial sandbox
+        executors["tool"] = domain.make_executor(offline=True, max_live_requests=0)
+        for condition in ("fault_down", "fault_error", "fault_empty"):
+            executors[condition] = domain.make_executor(fault_profile=condition.removeprefix("fault_"))
     rounds = in_tokens = 0.0
     for plan in sample:
         pair = golden.pair(plan.pair_id)
-        offered = None if plan.condition == "no_tool" else tools
-        conv = run_conversation(
-            sim,
-            trial_id=plan.trial_id,
-            system=system_prompt(domain, plan.lang),
-            user_text=GoldenSet.question(pair, plan.premise, plan.pressure, plan.lang),
-            tools=offered,
-            executor=executors.get(plan.condition),
-        )
+        offered = domain.tools_for(plan.condition)
+        ctx = trial_context(plan, sim.label)
+        sandbox = domain.open_trial(pair, ctx)
+        try:
+            conv = run_conversation(
+                sim,
+                trial_id=plan.trial_id,
+                system=system_prompt(domain, plan.lang, plan.condition),
+                user_text=domain.trial_text(pair, ctx)
+                or GoldenSet.question(pair, plan.premise, plan.pressure, plan.lang),
+                tools=offered,
+                executor=sandbox.executor if sandbox is not None else executors.get(plan.condition),
+                max_tool_rounds=domain.round_caps(plan.condition) or MAX_TOOL_ROUNDS,
+                follow_up=sandbox.end_turn if sandbox is not None else None,
+            )
+        finally:
+            if sandbox is not None:
+                sandbox.close()
         n = len(conv["rounds"])
         rounds += n
         # chars/4 x 1.2 (tokenizer margin) + ~400 hidden tool-use tokens per request with tools
@@ -340,12 +350,47 @@ def cmd_reproduce(args: argparse.Namespace) -> int:
         return code
     summary = json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
     for r in summary["metrics"]["rates"]:
+        headline = r["metric"] == "act_after_check" and r["rule"] == "strict" and r["stage"] == 1
+        if headline and r["world"] is None and r["pressure"] is None:
+            print(
+                f"  [SIMULATED] act-after-check {r['model']}: {r['k']}/{r['n']} = {100 * (r['rate'] or 0):.1f}% "
+                f"(Wilson {_fmt_ci(r['wilson'])}, cluster {_fmt_ci(r['cluster_ci'])})"
+            )
         if r["metric"] == "agree_after_check" and r["pressure"] is None:
             print(
                 f"  [SIMULATED] agree-after-check {r['model']}: {r['k']}/{r['n']} = {100 * r['rate']:.1f}% "
                 f"(Wilson {_fmt_ci(r['wilson'])}, cluster {_fmt_ci(r['cluster_ci'])})"
             )
     return 0
+
+
+def cmd_rescore(args: argparse.Namespace) -> int:
+    """Score a run again from the fixture, the golden set and its transcripts only (any later time)."""
+    from .report import build_report
+
+    path = build_report(args.run_dir, args.out)
+    summary = json.loads((path.parent / "summary.json").read_text(encoding="utf-8"))
+    for q in summary["metrics"]["quality"]:
+        reasons = q.get("excluded_by_reason") or {}
+        print(f"  {q['model']}: {q['n_trials']} trials, excluded {reasons or 'none'}")
+    print(f"rescored: {path}")
+    return 0
+
+
+def cmd_validate(args: argparse.Namespace) -> int:
+    """Simulated validation of an act domain: planted rates, known groups, determinism (ADR-0009)."""
+    from .act_validation import validate_act
+
+    domain = get_domain(args.domain)
+    if domain.report_kind != "act":
+        print("validate is for act domains; answer domains are validated in the README blocks", file=sys.stderr)
+        return 2
+    golden = load_golden(domain.golden_path)
+    checks = validate_act(domain, golden, limit_pairs=args.limit, reps=args.reps)
+    for c in checks:
+        detail = {k: v for k, v in c.items() if k not in ("check", "ok")}
+        print(f"  {'PASS' if c['ok'] else 'FAIL'}  [SIMULATED] {c['check']}: {json.dumps(detail, default=str)}")
+    return 0 if all(c["ok"] for c in checks) else 1
 
 
 def cmd_pack(args: argparse.Namespace) -> int:
@@ -473,6 +518,16 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("run_dir", type=Path)
     p.add_argument("--out", type=Path, help="output directory (default: the run directory)")
     p.set_defaults(func=cmd_report)
+
+    p = sub.add_parser("rescore", help="score a run again from the fixture, the golden set and its transcripts")
+    p.add_argument("run_dir", type=Path)
+    p.add_argument("--out", type=Path, help="output directory (default: the run directory)")
+    p.set_defaults(func=cmd_rescore)
+
+    p = sub.add_parser("validate", help="simulated validation of an act domain (planted rates, determinism)")
+    p.add_argument("--limit", type=int, help="only N pairs, round-robin across templates")
+    p.add_argument("--reps", type=int, default=1)
+    p.set_defaults(func=cmd_validate)
 
     p = sub.add_parser("compare", help="compare models from several runs on the units they all share")
     p.add_argument("run_dirs", type=Path, nargs="+")
