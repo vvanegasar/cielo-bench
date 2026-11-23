@@ -7,7 +7,7 @@ cielo-bench lo mide contra una verdad verificable (efemérides de NASA/JPL y una
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-blue.svg)](LICENSE)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 
-> **Estado:** v1.0, el instrumento. Los resultados con modelos reales están pendientes. Cada número de esta página es una propiedad del benchmark o una validación con agentes simulados, y está rotulado como tal.
+> **Estado:** v1.1: el instrumento y sus primeros resultados con modelos reales (2026-11-23, cuatro modelos de Anthropic; ver [Resultados](#resultados-modelos-reales) y la [nota de resultados](docs/results/2026-11-first-real-runs.md), en inglés). Cada número de esta página está rotulado como propiedad del benchmark, validación con agentes simulados o resultado con modelos reales.
 
 ## Por qué
 
@@ -86,6 +86,7 @@ Cada corrida escribe `results/<run-id>/REPORT.md` con tablas, figuras y muestras
    cielo-bench run                       # diseño completo; pide confirmación y se detiene en CIELO_MAX_USD
    cielo-bench pack results/<run-id>     # trials.jsonl.gz para versionar las transcripciones crudas
    ```
+4. Las corridas largas toman horas. En macOS, una corrida real impide que el equipo entre en reposo por inactividad mientras dura, y un vigilante escribe una línea `[watchdog]` en stderr si ningún ensayo termina en cinco minutos o si el equipo estuvo en reposo. Una corrida interrumpida sigue con `--resume --out <carpeta de la corrida>`.
 
 ## Dominios
 
@@ -107,14 +108,14 @@ Generada por `cielo-bench docs --update-readme-tables` a partir de la última co
 <!-- cielo-bench:begin tests -->
 | Suite | Pruebas | Pasan | Fallan | Omitidas |
 |---|---|---|---|---|
-| pytest (repository root) | 327 | 327 | 0 | 0 |
+| pytest (repository root) | 346 | 346 | 0 | 0 |
 
 | Módulo | Sentencias | Cobertura |
 |---|---|---|
-| `core` | 1707 | 95% |
+| `core` | 2004 | 95% |
 | `domains/astronomy` | 1400 | 95% |
 | `providers` | 483 | 98% |
-| **total** | 3590 | 94% |
+| **total** | 3887 | 94% |
 <!-- cielo-bench:end tests -->
 
 ## Validación del instrumento (agentes simulados)
@@ -182,8 +183,16 @@ EMD: efecto mínimo detectable de una diferencia pareada (McNemar, α = 0,05, po
 ## Resultados (modelos reales)
 
 <!-- cielo-bench:begin results -->
-Primeras corridas con modelos reales pendientes (previstas before 2026-12-06). No se muestran números hasta entonces.
+| Corrida | Dominio | Modelo (versión) | k/n | agree-after-check | Wilson 95 % | Bootstrap por clusters 95 % | Commit | Golden set |
+|---|---|---|---|---|---|---|---|---|
+| [`2026-11-23-astronomy-claude-fable-5-2-matched`](results/2026-11-23-astronomy-claude-fable-5-2-matched/REPORT.md) | astronomy | anthropic:claude-fable-5-2 (`claude-fable-5-2`) | 0/108 | 0,0 % | [0,0; 3,4] | [0,0; 0,0] | `483c46dbf8e3` | `418b7670808b…` |
+| [`2026-11-23-astronomy-claude-haiku-5-5`](results/2026-11-23-astronomy-claude-haiku-5-5/REPORT.md) | astronomy | anthropic:claude-haiku-5-5 (`claude-haiku-5-5`) | 1/432 | 0,2 % | [0,0; 1,3] | [0,0; 0,7] | `adb2d8815873` | `418b7670808b…` |
+| [`2026-11-23-astronomy-claude-opus-5-5-matched`](results/2026-11-23-astronomy-claude-opus-5-5-matched/REPORT.md) | astronomy | anthropic:claude-opus-5-5 (`claude-opus-5-5`) | 0/108 | 0,0 % | [0,0; 3,4] | [0,0; 0,0] | `483c46dbf8e3` | `418b7670808b…` |
+| [`2026-11-23-astronomy-claude-sonnet-5-5`](results/2026-11-23-astronomy-claude-sonnet-5-5/REPORT.md) | astronomy | anthropic:claude-sonnet-5-5 (`claude-sonnet-5-5`) | 1/432 | 0,2 % | [0,0; 1,3] | [0,0; 0,7] | `adb2d8815873` | `418b7670808b…` |
+| [`2026-11-23-tabular-claude-haiku-5-5`](results/2026-11-23-tabular-claude-haiku-5-5/REPORT.md) | tabular | anthropic:claude-haiku-5-5 (`claude-haiku-5-5`) | 0/324 | 0,0 % | [0,0; 1,2] | [0,0; 0,0] | `adb2d8815873` | `19ecd57668e5…` |
 <!-- cielo-bench:end results -->
+
+Una fila por corrida real: agree-after-check con los tres niveles de presión juntos. Las corridas de Claude Opus 5.5 y Claude Fable 5.2 cubren un subconjunto emparejado (36 pares, solo la condición `tool`); los cuatro modelos sobre los mismos ítems se comparan en [COMPARISON.md](results/2026-11-23-astronomy-matched-comparison/COMPARISON.md), y Haiku con Sonnet en los bloques principal y de fallas en [esta comparación](results/2026-11-23-astronomy-haiku-sonnet-comparison/COMPARISON.md). Diseños, las demás métricas, costo y limitaciones: [docs/results/2026-11-first-real-runs.md](docs/results/2026-11-first-real-runs.md).
 
 ## Reproducibilidad
 
@@ -197,6 +206,7 @@ Primeras corridas con modelos reales pendientes (previstas before 2026-12-06). N
 ## Documentación
 
 - [docs/EVALS.md](docs/EVALS.md): método, métricas y estadística.
+- [docs/results/](docs/results/): notas de resultados con modelos reales (en inglés).
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): arquitectura.
 - [docs/DOMAINS.md](docs/DOMAINS.md): los dominios.
 - [docs/TOOLS.md](docs/TOOLS.md): contratos de las herramientas.
@@ -212,7 +222,9 @@ Efemérides: NASA/JPL Solar System Dynamics, Horizons. Los datos tabulares son s
 
 Ver [CITATION.cff](CITATION.cff):
 
-> Vanegas Aristizábal, V. (2026). *cielo-bench: Check or agree? A benchmark of whether tool-using AI agents verify a user's claim or agree with it* (v1.0.0) [Software]. Zenodo. https://doi.org/10.5281/zenodo.24441942
+> Vanegas Aristizábal, V. (2026). *cielo-bench: Check or agree? A benchmark of whether tool-using AI agents verify a user's claim or agree with it* (v1.1.0) [Software]. Zenodo. https://doi.org/10.5281/zenodo.24441942
+
+El DOI es el DOI de concepto de Zenodo: cubre todas las versiones y lleva a la más reciente. Cada versión tiene además su propio DOI en Zenodo.
 
 ## Licencia
 
