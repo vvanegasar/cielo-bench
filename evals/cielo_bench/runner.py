@@ -101,27 +101,44 @@ PROGRESS_EVERY = 50  # trials between progress lines
 SLEEP_GAP_S = 30.0  # wall-clock time not seen by the monotonic clock, above which the machine slept
 
 
+def caffeinate_argv() -> list[str] | None:
+    """The command that holds an idle-sleep assertion for this process (macOS only)."""
+    if sys.platform != "darwin":
+        return None
+    exe = shutil.which("caffeinate")
+    return None if exe is None else [exe, "-i", "-w", str(os.getpid())]
+
+
 def keep_awake(enabled: bool) -> subprocess.Popen[bytes] | None:
     """On macOS, start ``caffeinate -i -w <pid>``: no idle sleep while this process lives.
 
     If the machine idles into sleep, an in-flight HTTP request dies silently and its read
     timeout counts only awake time, so one request can block a worker for hours. Returns the
-    helper process (the caller terminates it), or None where it is unavailable or unwanted.
+    helper process (stop it with ``release``), or None where it is unavailable or unwanted.
     """
-    if not enabled or sys.platform != "darwin":
-        return None
-    exe = shutil.which("caffeinate")
-    if exe is None:
+    argv = caffeinate_argv() if enabled else None
+    if argv is None:
         return None
     try:
-        return subprocess.Popen(
-            [exe, "-i", "-w", str(os.getpid())],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        return _spawn(argv)
     except OSError:
         return None
+
+
+def _spawn(argv: list[str]) -> subprocess.Popen[bytes]:
+    return subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def release(helper: subprocess.Popen[bytes] | None, timeout_s: float = 5.0) -> None:
+    """Stop the keep-awake helper; kill it if it does not exit in time."""
+    if helper is None:
+        return
+    helper.terminate()
+    try:
+        helper.wait(timeout=timeout_s)
+    except subprocess.TimeoutExpired:
+        helper.kill()
+        helper.wait()
 
 
 class Watchdog:
@@ -274,6 +291,43 @@ def make_executors(spec: RunSpec) -> dict[str, ToolExecutor | None]:
     return executors
 
 
+SESSION_KEYS = (
+    "commit",
+    "code_version",
+    "max_usd",
+    "n_trials_already_done",
+    "keep_awake",
+    "status",
+    "stopped_reason",
+    "finished_at_utc",
+    "n_trials_completed_this_session",
+    "n_trial_errors_this_session",
+    "cost_usd_this_session",
+    "source_live_requests",
+)
+
+
+def _previous_manifest(path: Path) -> dict[str, Any] | None:
+    if not path.is_file():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except ValueError:
+        return None
+
+
+def _earlier_sessions(previous: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """Sessions recorded by an earlier manifest. A manifest written before sessions were
+    recorded describes exactly one session in its top-level fields."""
+    if not previous:
+        return []
+    if "sessions" in previous:
+        return list(previous["sessions"])
+    legacy = {"started_at_utc": previous.get("created_at_utc"), "started_at_cot": previous.get("created_at_cot")}
+    legacy.update({k: previous.get(k) for k in SESSION_KEYS})
+    return [legacy]
+
+
 def execute_run(spec: RunSpec) -> Path:
     out = spec.out_dir
     out.mkdir(parents=True, exist_ok=True)
@@ -302,14 +356,26 @@ def execute_run(spec: RunSpec) -> Path:
     plans = plan_trials(spec)
     pending = [p for p in plans if p.trial_id not in done]
     now = datetime.now(UTC)
+    commit = git_commit()
+    previous = _previous_manifest(manifest_path) if spec.resume else None
+    run_id = previous["run_id"] if previous else spec.run_id
+    session: dict[str, Any] = {
+        "started_at_utc": _iso(now),
+        "started_at_cot": now.astimezone(COT).isoformat(timespec="seconds"),
+        "commit": commit,
+        "code_version": __version__,
+        "max_usd": spec.max_usd,
+        "n_trials_already_done": len(done),
+    }
     manifest: dict[str, Any] = {
-        "run_id": spec.run_id,
+        "run_id": run_id,
         "status": "running",
         "simulated": all(p.simulated for p in spec.providers),
         "any_simulated": any(p.simulated for p in spec.providers),
-        "created_at_utc": _iso(now),
-        "created_at_cot": now.astimezone(COT).isoformat(timespec="seconds"),
-        "commit": git_commit(),
+        # a resumed run keeps the identity of its first session; each session is listed in "sessions"
+        "created_at_utc": previous["created_at_utc"] if previous else session["started_at_utc"],
+        "created_at_cot": previous["created_at_cot"] if previous else session["started_at_cot"],
+        "commit": previous["commit"] if previous else commit,
         "code_version": __version__,
         "python": sys.version.split()[0],
         "platform": platform.platform(),
@@ -348,10 +414,8 @@ def execute_run(spec: RunSpec) -> Path:
         "n_trials_planned": len(plans),
         "n_trials_already_done": len(done),
         "max_usd": spec.max_usd,
+        "sessions": [*_earlier_sessions(previous), session],
     }
-    awake = keep_awake(spec.keep_awake and not manifest["any_simulated"] and bool(pending))
-    manifest["keep_awake"] = "caffeinate -i" if awake is not None else None
-    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     lock = threading.Lock()
     state: dict[str, Any] = {"cost": 0.0, "completed": 0, "errors": 0, "stopped": None}
@@ -379,7 +443,7 @@ def execute_run(spec: RunSpec) -> Path:
         )
         return {
             "trial_id": plan.trial_id,
-            "run_id": spec.run_id,
+            "run_id": run_id,
             "model_label": provider.label,
             "provider": provider.provider,
             "model_id": provider.model,
@@ -413,9 +477,13 @@ def execute_run(spec: RunSpec) -> Path:
                     flush=True,
                 )
 
-    if spec.progress:
-        watchdog.start()
+    awake = None
     try:
+        awake = keep_awake(spec.keep_awake and not manifest["any_simulated"] and bool(pending))
+        manifest["keep_awake"] = session["keep_awake"] = "caffeinate -i" if awake is not None else None
+        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        if spec.progress:
+            watchdog.start()
         with ThreadPoolExecutor(max_workers=max(1, spec.workers)) as pool:
             in_flight: set[Future[dict[str, Any]]] = set()
             for plan in pending:
@@ -431,21 +499,19 @@ def execute_run(spec: RunSpec) -> Path:
                 record_done(future.result())
     finally:
         watchdog.stop()
-        if awake is not None:
-            awake.terminate()
-            awake.wait(timeout=5)
+        release(awake)
 
     tool_executor = executors.get("tool")
-    manifest.update(
-        {
-            "status": "stopped" if state["stopped"] else "complete",
-            "stopped_reason": state["stopped"],
-            "finished_at_utc": _iso(datetime.now(UTC)),
-            "n_trials_completed_this_session": state["completed"],
-            "n_trial_errors_this_session": state["errors"],
-            "cost_usd_this_session": round(state["cost"], 6),
-            "source_live_requests": tool_executor.live_requests if tool_executor is not None else 0,
-        }
-    )
+    outcome = {
+        "status": "stopped" if state["stopped"] else "complete",
+        "stopped_reason": state["stopped"],
+        "finished_at_utc": _iso(datetime.now(UTC)),
+        "n_trials_completed_this_session": state["completed"],
+        "n_trial_errors_this_session": state["errors"],
+        "cost_usd_this_session": round(state["cost"], 6),
+        "source_live_requests": tool_executor.live_requests if tool_executor is not None else 0,
+    }
+    session.update(outcome)
+    manifest.update(outcome)  # the top-level fields describe the latest session
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return out

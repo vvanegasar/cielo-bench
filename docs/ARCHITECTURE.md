@@ -82,7 +82,7 @@ API keys and request headers are never written (tested).
 
 | File | Content | Versioned |
 |---|---|---|
-| `manifest.json` | design, models and settings without secrets, prices, commit, golden-set hash, system prompts, live source requests | real runs |
+| `manifest.json` | design, models and settings without secrets, prices, commit, golden-set hash, system prompts, live source requests; one entry per session in `sessions` (a resumed run keeps its first run id, commit and start time) | real runs |
 | `trials.jsonl` | raw transcripts | local only; `trials.jsonl.gz` (from `cielo-bench pack`) is versioned |
 | `scores.jsonl` | derived trial coding | local only |
 | `summary.json` | all metrics | real runs |

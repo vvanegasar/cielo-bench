@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import secrets
 import sys
 from collections import Counter
 from datetime import UTC, datetime
@@ -245,7 +246,8 @@ def _run(args: argparse.Namespace, *, report: bool) -> tuple[int, Path | None]:
     else:
         settings = load_settings()
         specs = _csv(args.models or settings.get("CIELO_MODELS", "anthropic,openai"))
-    run_id = f"{_stamp()}-{'simulated' if simulated else 'real'}"
+    # unique even for runs started in the same second (a resumed run keeps its first id)
+    run_id = f"{_stamp()}-{'simulated' if simulated else 'real'}-{secrets.token_hex(3)}"
     if args.resume and args.out is None:
         print("--resume needs --out <existing run dir>", file=sys.stderr)
         return 2, None
