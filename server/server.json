@@ -1,0 +1,25 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.vvanegasar/cielo-mcp",
+  "title": "cielo-bench",
+  "description": "Read-only tools with citations: NASA/JPL Horizons sky positions and SQL on a synthetic company DB",
+  "repository": {
+    "url": "https://github.com/vvanegasar/cielo-bench",
+    "source": "github",
+    "subfolder": "server"
+  },
+  "websiteUrl": "https://github.com/vvanegasar/cielo-bench/blob/main/server/README.md",
+  "version": "0.1.1",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "registryBaseUrl": "https://pypi.org",
+      "identifier": "cielo-mcp",
+      "version": "0.1.1",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

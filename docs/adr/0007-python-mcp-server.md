@@ -83,3 +83,11 @@ There is no flag or header for fault injection. `build_server(executor_factory=.
 2. Should `--live` be the default for Claude Desktop? Proposed: keep cache-only as the default, and show `--live` in the Claude Desktop example in `server/README.md`.
 3. Whether the benchmark should add an MCP arm (the same items run through this server) to measure MCP-specific effects such as tool discovery.
 4. A per-domain way to declare that a domain has no upstream source, so `openWorldHint` can be false for tabular even in `--live` mode.
+
+## Amendment, 1.1.1 (2026-11-23): published on PyPI
+
+The packaging bullet of §1 and the ADR-0004 row of the table above change; everything else stands.
+
+- Both packages are published on PyPI from this repository, by `.github/workflows/publish.yml` with Trusted Publishing: `cielo-bench` (the core, whose wheel now ships the golden sets and fixtures) and `cielo-mcp`.
+- The server now declares the core: `cielo-bench>=1.1.1,<1.2`. The dependency-confusion risk came from a name nobody had published; once this project publishes `cielo-bench`, a public index resolves it to this code. `pip install cielo-mcp` installs both.
+- The server is listed in the official MCP Registry as `io.github.vvanegasar/cielo-mcp` (`server/server.json`, package type `pypi`).

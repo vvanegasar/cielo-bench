@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -20,6 +21,7 @@ import zipfile
 from pathlib import Path
 
 import pytest
+from packaging.requirements import Requirement
 
 from cielo_bench import __version__, config, report
 from cielo_bench.domains import AVAILABLE, get_domain
@@ -122,7 +124,7 @@ def test_a_run_from_the_installed_layout_records_and_reloads_the_repository_path
     assert reloaded.sha256 == load_golden(REPO / ASTRONOMY_GOLDEN).sha256 and scored
 
 
-# ----------------------------------------------------------------------------- build configuration
+# ----------------------------------------------------------------------------- release metadata
 def test_the_build_lists_every_code_package_and_maps_the_data():
     setuptools = _pyproject(REPO / "pyproject.toml")["tool"]["setuptools"]
     code = {
@@ -136,6 +138,37 @@ def test_the_build_lists_every_code_package_and_maps_the_data():
         "": "evals",
         **{f"cielo_bench._data.{k}": f"evals/{k}" for k in config.DATA_KINDS},
     }
+
+
+def test_versions_and_the_dependency_between_the_packages_agree():
+    core = _pyproject(REPO / "pyproject.toml")["project"]
+    server = _pyproject(REPO / "server" / "pyproject.toml")["project"]
+    server_version = re.search(r'__version__ = "([^"]+)"', (REPO / "server" / "cielo_mcp" / "__init__.py").read_text())
+    assert core["version"] == __version__
+    assert server_version and server["version"] == server_version.group(1)
+    requirement = next(Requirement(r) for r in server["dependencies"] if Requirement(r).name == "cielo-bench")
+    assert requirement.specifier.contains(__version__)
+    assert core["authors"] == server["authors"] == [{"name": "Valentina Vanegas Aristizábal"}]
+    assert (REPO / "server" / "LICENSE").read_bytes() == (REPO / "LICENSE").read_bytes()
+    citation = (REPO / "CITATION.cff").read_text(encoding="utf-8")
+    assert f'version: "{__version__}"' in citation
+    assert json.loads((REPO / ".zenodo.json").read_text(encoding="utf-8"))["version"] == __version__
+
+
+def test_the_mcp_registry_entry_matches_the_server_package():
+    entry = json.loads((REPO / "server" / "server.json").read_text(encoding="utf-8"))
+    server = _pyproject(REPO / "server" / "pyproject.toml")["project"]
+    assert len(entry["description"]) <= 100
+    assert entry["version"] == server["version"]
+    (package,) = entry["packages"]
+    assert (package["registryType"], package["identifier"], package["version"]) == (
+        "pypi",
+        server["name"],
+        server["version"],
+    )
+    # the registry checks ownership with this line in the PyPI description (the package README)
+    readme = (REPO / "server" / server["readme"]["file"]).read_text(encoding="utf-8")
+    assert f"<!-- mcp-name: {entry['name']} -->" in readme.splitlines()
 
 
 # ----------------------------------------------------------------------------- the real wheel

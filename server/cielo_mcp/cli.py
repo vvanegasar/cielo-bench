@@ -75,9 +75,9 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         from .server import build_server
-    except ImportError as exc:  # the benchmark core is a separate install (server/README.md)
-        print(f"cielo-mcp: {exc}. Install the benchmark core first: `pip install -e .` from the "
-              "repository root, then `pip install -e ./server`.", file=sys.stderr)
+    except ImportError as exc:  # the benchmark core is missing or broken (server/README.md)
+        print(f"cielo-mcp: {exc}. Install the benchmark core: `pip install cielo-bench`, or "
+              "`pip install -e .` from the repository root of a checkout.", file=sys.stderr)
         return 1
 
     server = build_server(config_from(args, os.environ))

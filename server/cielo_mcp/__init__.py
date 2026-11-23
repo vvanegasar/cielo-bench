@@ -6,4 +6,4 @@ them with the domain's executor and returns the executor's result unchanged. See
 docs/adr/0007-python-mcp-server.md.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"

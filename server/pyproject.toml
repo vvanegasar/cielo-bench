@@ -4,18 +4,46 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cielo-mcp"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP server for cielo-bench: the benchmark's own tools, with citations and honest failures, for any MCP client."
-readme = "README.md"
+readme = { file = "README.md", content-type = "text/markdown" }
 license = "MIT"
+license-files = ["LICENSE"]  # a copy of the repository's LICENSE: a package can only ship files under its own directory
 requires-python = ">=3.12"
-authors = [{ name = "Valentina Vanegas" }]
-# The benchmark core (`cielo_bench`, the repository root) is required but deliberately not listed:
-# it is not on PyPI, and listing it would let pip resolve that name from a public index
-# (dependency confusion). Install it first: `pip install -e .` from the repository root.
+authors = [{ name = "Valentina Vanegas Aristizábal" }]
+keywords = [
+  "mcp", "model-context-protocol", "mcp-server", "llm", "agents", "tool-use", "benchmark",
+  "sycophancy", "ground-truth", "astronomy", "jpl-horizons", "sqlite",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Scientific/Engineering :: Astronomy",
+]
 dependencies = [
+  # The benchmark core: its domains, tools, golden sets and fixtures. Any 1.1.x from 1.1.1 on: patch
+  # releases change neither golden sets nor metrics, and 1.1.1 is the first wheel that ships its data.
+  # A minor release can change a golden set, so it gets a server release tested against it.
+  "cielo-bench>=1.1.1,<1.2",
   "mcp==2.3.0",  # official MCP Python SDK; MCPServer is the 2.x name of FastMCP (ADR-0007)
 ]
+
+[project.urls]
+Homepage = "https://github.com/vvanegasar/cielo-bench/tree/main/server"
+Repository = "https://github.com/vvanegasar/cielo-bench"
+Issues = "https://github.com/vvanegasar/cielo-bench/issues"
+Documentation = "https://github.com/vvanegasar/cielo-bench/blob/main/server/README.md"
+Changelog = "https://github.com/vvanegasar/cielo-bench/blob/main/CHANGELOG.md"
+"Technical report" = "https://doi.org/10.5281/zenodo.24481194"
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<10"]

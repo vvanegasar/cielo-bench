@@ -4,19 +4,21 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cielo-bench"
-version = "1.1.0"
+version = "1.1.1"
 description = "Check or agree? A benchmark of whether tool-using AI agents verify a user's claim or agree with it, judged against verifiable ground truth (NASA/JPL Horizons) instead of an LLM judge."
-readme = "README.md"
+# The repository README links relative paths and generated tables; PyPI gets a page with absolute links.
+readme = { file = "README.pypi.md", content-type = "text/markdown" }
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
 authors = [{ name = "Valentina Vanegas Aristizábal" }]
 keywords = [
   "llm", "agents", "sycophancy", "benchmark", "evaluation", "tool-use", "mcp",
-  "ground-truth", "astronomy", "jpl-horizons",
+  "model-context-protocol", "ground-truth", "reproducibility", "astronomy", "jpl-horizons", "sqlite",
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
+  "Environment :: Console",
   "Intended Audience :: Science/Research",
   "Intended Audience :: Developers",
   "Natural Language :: English",
@@ -44,6 +46,8 @@ Repository = "https://github.com/vvanegasar/cielo-bench"
 Issues = "https://github.com/vvanegasar/cielo-bench/issues"
 Documentation = "https://github.com/vvanegasar/cielo-bench/tree/main/docs"
 Changelog = "https://github.com/vvanegasar/cielo-bench/blob/main/CHANGELOG.md"
+"Technical report" = "https://doi.org/10.5281/zenodo.24481194"
+Zenodo = "https://doi.org/10.5281/zenodo.24441942"
 
 [project.optional-dependencies]
 # setuptools: evals/tests/test_packaging.py builds the sdist and the wheel (same floor as [build-system])

@@ -16,7 +16,7 @@ authors:
     given-names: "Valentina"
     orcid: "https://orcid.org/0009-0004-7133-9367"
     website: "https://vvanegasar.github.io"
-version: "1.1.0"
+version: "1.1.1"
 doi: "10.5281/zenodo.24441942"
 date-released: "2026-11-23"
 license: MIT

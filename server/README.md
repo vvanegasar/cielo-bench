@@ -1,6 +1,8 @@
 # cielo-mcp — the cielo-bench tools as an MCP server
 
-`cielo` is the MCP server of [cielo-bench](../README.md), a benchmark that measures whether AI agents check a user's claim with their tools or simply agree with it, judged against an external ground truth (NASA/JPL Horizons ephemerides) instead of another model.
+<!-- mcp-name: io.github.vvanegasar/cielo-mcp -->
+
+`cielo` is the MCP server of [cielo-bench](https://github.com/vvanegasar/cielo-bench), a benchmark that measures whether AI agents check a user's claim with their tools or simply agree with it, judged against an external ground truth (NASA/JPL Horizons ephemerides) instead of another model.
 
 The server exposes **the benchmark's own tools, unchanged**, to any MCP client, such as Claude Desktop or MCP Inspector. A test checks that every MCP result equals what the benchmark's executor returns for the same call. Every `ok` result cites its source (service, query and retrieval time), and when the source is down or a value is not available the tool says so and returns no numbers.
 
@@ -9,7 +11,7 @@ The server exposes **the benchmark's own tools, unchanged**, to any MCP client, 
 - Read-only tools, a resource with the method and credits (`cielo://about`), and a prompt (`check_claim`).
 - Domains are discovered from the benchmark's registry: astronomy, and tabular company data. A new domain's tools are served with no change here.
 
-Design: [ADR-0007](../docs/adr/0007-python-mcp-server.md). Tool contracts: [docs/TOOLS.md](../docs/TOOLS.md).
+Design: [ADR-0007](https://github.com/vvanegasar/cielo-bench/blob/main/docs/adr/0007-python-mcp-server.md). Tool contracts: [docs/TOOLS.md](https://github.com/vvanegasar/cielo-bench/blob/main/docs/TOOLS.md).
 
 ## Tools
 
@@ -21,7 +23,7 @@ Design: [ADR-0007](../docs/adr/0007-python-mcp-server.md). Tool contracts: [docs
 | `describe_schema` | Read-only: tables, columns, keys and conventions of a fictional distributor's database | Synthetic, seeded SQLite snapshot |
 | `run_sql` | Read-only: one `SELECT` on that database; anything that could write is rejected as `invalid_input` | Synthetic, seeded SQLite snapshot |
 
-All tools are annotated `readOnlyHint: true`. `openWorldHint` is `true` only in `--live` mode, and only for domains whose tools can reach a source outside the machine (`Domain.external_source`: astronomy yes, tabular no). The tool list comes from the domains themselves, so a new tool appears here without a server change (contracts in [docs/TOOLS.md](../docs/TOOLS.md)).
+All tools are annotated `readOnlyHint: true`. `openWorldHint` is `true` only in `--live` mode, and only for domains whose tools can reach a source outside the machine (`Domain.external_source`: astronomy yes, tabular no). The tool list comes from the domains themselves, so a new tool appears here without a server change (contracts in [docs/TOOLS.md](https://github.com/vvanegasar/cielo-bench/blob/main/docs/TOOLS.md)).
 
 Each domain also declares fault profiles that make its source behave as down:
 - astronomy: `down`, `error`, `empty`, `malformed` and `timeout`;
@@ -31,17 +33,23 @@ The benchmark and the tests use them, and every one of them yields `source_unava
 
 ## Install
 
-Python 3.12 or newer. From a checkout of this repository:
+Python 3.12 or newer:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e .            # the benchmark core (cielo_bench)
-pip install -e ./server     # this server; pins mcp==2.3.0
-cielo-mcp --version         # cielo-mcp 0.1.0
+pip install cielo-mcp       # this server and the benchmark core (cielo-bench); pins mcp==2.3.0
+cielo-mcp --version         # cielo-mcp 0.1.1
 ```
 
-The core is not on PyPI, so it is installed first, from the repository root, and the server does not declare it as a dependency (that would let `pip` look the name up on a public index). No API keys are needed, and the server never reads any.
+The benchmark core, `cielo-bench`, is installed with it (a 1.1.x release, 1.1.1 or newer) and carries the golden sets and the cached fixtures, so the server works offline. No API keys are needed, and the server never reads any.
+
+From a checkout of the repository, install the core first, then the server:
+
+```bash
+pip install -e .            # the benchmark core (cielo_bench)
+pip install -e ./server     # this server
+```
 
 ## Run
 
@@ -56,7 +64,7 @@ Started by hand over stdio, the server waits silently for a client on stdin; sto
 
 **Cache only (default).** The tools answer from what is already cached, and nothing leaves the machine. The cache is the benchmark's committed fixtures, which cover the golden set's dates (for example 12 December 2026 in Medellín), plus whatever earlier `--live` runs stored in the live cache. For anything else the tools return `source_unavailable` with reason `offline_cache_miss`, which is the honest-failure path the benchmark measures.
 
-**Live (`--live`).** The tools may query NASA/JPL Horizons, following its fair-use policy. The client sends one request at a time, at least 1 s apart, caches every response by query, and identifies itself as `cielo-mcp/0.1.0 (MCP server of the cielo-bench research benchmark; non-commercial)`, with no personal data. There are at most 100 requests per server process (`--max-live-requests N`).
+**Live (`--live`).** The tools may query NASA/JPL Horizons, following its fair-use policy. The client sends one request at a time, at least 1 s apart, caches every response by query, and identifies itself as `cielo-mcp/0.1.1 (MCP server of the cielo-bench research benchmark; non-commercial)`, with no personal data. There are at most 100 requests per server process (`--max-live-requests N`).
 
 **Live cache.** Live responses, and the log of each request, are stored outside the repository: in `--cache-dir DIR` if given, else `CIELO_CACHE_DIR`, else `$XDG_CACHE_HOME/cielo-bench`, else `~/.cache/cielo-bench`. The repository's fixtures are never written.
 
@@ -74,20 +82,20 @@ Open **Settings → Developer → Edit Config**, or edit the file directly:
 - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
-Add the server, using the absolute path to the virtual environment:
+Add the server, using the absolute path to `cielo-mcp` in the virtual environment where it is installed (`which cielo-mcp` prints it):
 
 ```json
 {
   "mcpServers": {
     "cielo": {
-      "command": "/absolute/path/to/cielo-bench/.venv/bin/cielo-mcp",
+      "command": "/absolute/path/to/.venv/bin/cielo-mcp",
       "args": ["--live"]
     }
   }
 }
 ```
 
-On Windows the command is `C:\\absolute\\path\\to\\cielo-bench\\.venv\\Scripts\\cielo-mcp.exe`. Restart Claude Desktop. Then ask, for example, *"Where will Saturn be from Medellín at 9 pm on 12 December 2026?"*, or use the `check_claim` prompt with a claim to check. Remove `"--live"` to run cache-only. On macOS the server's stderr is in `~/Library/Logs/Claude/mcp-server-cielo.log`.
+On Windows the command is `C:\\absolute\\path\\to\\.venv\\Scripts\\cielo-mcp.exe`. Restart Claude Desktop. Then ask, for example, *"Where will Saturn be from Medellín at 9 pm on 12 December 2026?"*, or use the `check_claim` prompt with a claim to check. Remove `"--live"` to run cache-only. On macOS the server's stderr is in `~/Library/Logs/Claude/mcp-server-cielo.log`.
 
 ## MCP Inspector
 
@@ -95,12 +103,12 @@ On Windows the command is `C:\\absolute\\path\\to\\cielo-bench\\.venv\\Scripts\\
 
 ```bash
 # Web UI over stdio: list the tools, read cielo://about, call a tool
-npx @modelcontextprotocol/inspector@2 /absolute/path/to/cielo-bench/.venv/bin/cielo-mcp
+npx @modelcontextprotocol/inspector@2 /absolute/path/to/.venv/bin/cielo-mcp
 
 # CLI: list the tools, then call one (cached, so it works offline)
-npx @modelcontextprotocol/inspector@2 --cli /absolute/path/to/cielo-bench/.venv/bin/cielo-mcp \
+npx @modelcontextprotocol/inspector@2 --cli /absolute/path/to/.venv/bin/cielo-mcp \
   --method tools/list
-npx @modelcontextprotocol/inspector@2 --cli /absolute/path/to/cielo-bench/.venv/bin/cielo-mcp \
+npx @modelcontextprotocol/inspector@2 --cli /absolute/path/to/.venv/bin/cielo-mcp \
   --method tools/call --tool-name body_position \
   --tool-args-json '{"body": "Saturn", "location": {"city": "Medellín"}, "datetime": "2026-12-12T21:00:00-05:00"}'
 
@@ -199,6 +207,6 @@ The MCP cases run over both protocol eras: the `initialize` handshake (what Clau
 
 ## Credits
 
-Ephemerides: NASA/JPL Solar System Dynamics — Horizons. cielo-bench is an independent project and is not endorsed by NASA or JPL. See [DATA-SOURCES](../docs/DATA-SOURCES.md).
+Ephemerides: NASA/JPL Solar System Dynamics — Horizons. cielo-bench is an independent project and is not endorsed by NASA or JPL. See [DATA-SOURCES](https://github.com/vvanegasar/cielo-bench/blob/main/docs/DATA-SOURCES.md).
 
-MIT license, see [LICENSE](../LICENSE).
+MIT license, see [LICENSE](https://github.com/vvanegasar/cielo-bench/blob/main/LICENSE).

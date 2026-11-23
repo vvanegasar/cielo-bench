@@ -4,4 +4,4 @@ The harness is domain-independent (see ``cielo_bench.domain``). The pilot ships 
 domain, astronomy, whose ground truth is NASA/JPL Horizons.
 """
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
