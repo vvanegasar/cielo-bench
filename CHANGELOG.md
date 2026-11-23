@@ -5,6 +5,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- **Act vs. answer, checkpoint** (ADR-0009, proposed): the `tabular_act` domain, its operations fixture `distributor-ops-v1` and golden set `tabular-act-v1` (4 templates × 6 pairs, four worlds each), write tools on a per-trial in-memory database, multi-turn trials with an insistence turn, pure scoring from the write log, counterfactual evidence, act metrics and report, simulated act agents, and `cielo-bench validate` and `rescore`. Departures from the reviewed design: `DESIGN-CHANGES.md`.
+
+### Changed
+
+- The MCP server serves only an allowlist of domains and refuses to start unless every served tool declares `readOnlyHint: true`; the astronomy and tabular tool specs declare it.
+
 ## [1.1.1] - 2026-11-23
 
 Packaging and documentation only. The golden sets (same SHA-256), the metric definitions and the results are unchanged: `cielo-bench report` rebuilds `REPORT.md` and `summary.json` of every versioned run byte for byte. The MCP server is released with it as `cielo-mcp` 0.1.1.

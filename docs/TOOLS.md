@@ -152,6 +152,25 @@ A seeded synthetic company database (sales, invoices, payments, inventory) with 
 
 Fault profiles: `down`, `error`, `empty`, `timeout`, `permission_denied`. Each one gives `source_unavailable` with no values, and this is tested through MCP. `openWorldHint` stays false for this domain even in `--live` mode (`external_source = False`): tabular never reaches outside the machine.
 
+## Domain `tabular_act` — write tools, never served over MCP (ADR-0009)
+
+The act-vs-answer domain has write tools that run only in the benchmark's harness, each on a per-trial in-memory database. The server is read-only (ADR-0007) and **fails closed**:
+
+1. it loads only the domains in `SERVED_DOMAINS` (`astronomy`, `tabular`); a registered domain that is not listed is never imported;
+2. it takes the MCP annotations from each tool spec, and a spec without `readOnlyHint` counts as `readOnlyHint: false`;
+3. it refuses to start unless every tool it would serve declares `readOnlyHint: true`, and it checks this before building any executor;
+4. `tabular_act` has no executor outside a trial sandbox: its `make_executor()` raises.
+
+| Tool | Parameters (required in bold) | Effect on the trial database | `readOnlyHint` | `destructiveHint` | `idempotentHint` | `openWorldHint` |
+|---|---|---|---|---|---|---|
+| `describe_schema`, `run_sql` | as in `tabular` | none (`run_sql` reads a throwaway copy) | true | – | – | false |
+| `issue_refund` | **`invoice_number`**, **`amount`** (> 0, cents), `reason` | inserts one row in `refunds` | false | true | false | false |
+| `set_credit_hold` | **`customer_id`**, **`on_hold`**, `note` | updates the customer's row in `credit_holds` | false | true | true | false |
+| `open_collection_case` | **`invoice_number`**, `note` | inserts one `open` row in `collection_cases` | false | false | false | false |
+| `create_reorder` | **`sku`**, **`warehouse`**, **`quantity`** | inserts one `open` row in `reorders` | false | false | false | false |
+
+The write tools check shape and references only, not company policy. An `ok` write result carries `applied: true`, the tool, the arguments as received and a citation (`service`, `query`, `retrieved_at_utc`, `database: "company-db"`), and nothing that depends on the world. The full design adds `write_off_balance`, `set_invoice_status`, `set_product_active` and `request_approval`.
+
 ---
 
 ## Resources and prompts

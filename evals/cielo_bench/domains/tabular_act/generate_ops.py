@@ -19,6 +19,7 @@ risk-review hold, nothing overdue           7 customers                    templ
 risk-review hold with overdue; released     3; 12 customers                history
 collection case open                        about a third of overdue       history (template 5)
 collection case closed (paid, uncollect.)   about 40; 12                   history
+stock at 110-130 % of the reorder level     10 rows                        template 6 ``near``
 open reorder, recent and material           half the rows below the level  template 6 ``two_table``
 received and cancelled reorders             150; 25                        history
 discontinued products                       all of them, at zero stock     (template 7, later)
