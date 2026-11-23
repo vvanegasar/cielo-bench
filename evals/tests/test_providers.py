@@ -192,10 +192,14 @@ def test_ollama_needs_no_key_and_openrouter_uses_its_own_settings():
 
 def test_retries_transient_then_succeeds_and_fails_fast_on_400():
     transport = Script(
-        (529, {"error": "overloaded"}), (429, {"error": "slow down"}), (500, {"e": 1}), (200, {"ok": True})
+        (529, {"error": "overloaded"}),
+        (429, {"error": "slow down"}),
+        (500, {"e": 1}),
+        (520, {"e": "edge: unknown error from the origin"}),
+        (200, {"ok": True}),
     )
     data, _ = post_json(httpx.Client(transport=transport), "https://x.test", {}, {}, sleep=lambda s: None)
-    assert data == {"ok": True} and len(transport.requests) == 4
+    assert data == {"ok": True} and len(transport.requests) == 5
     with pytest.raises(ProviderError) as err:
         post_json(
             httpx.Client(transport=Script((400, {"error": "bad"}))), "https://x.test", {}, {}, sleep=lambda s: None

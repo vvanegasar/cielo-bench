@@ -1,7 +1,8 @@
 """HTTP plumbing shared by the real providers: retries, rate limiting and an output cache.
 
-* ``post_json`` retries transient failures (408, 409, 429, 5xx, 529, timeouts, network
-  errors) with exponential backoff and honours ``Retry-After``. Headers are never logged.
+* ``post_json`` retries transient failures (408, 409, 429, 5xx, 529, the 520-524 errors of a
+  CDN in front of the API, timeouts, network errors) with exponential backoff and honours
+  ``Retry-After``. Headers are never logged.
 * ``RateLimiter`` spaces requests to at most N per minute, across threads.
 * ``ResponseCache`` stores each raw response under the SHA-256 of (url, body, salt). The
   runner salts with the trial id and round, so a resumed run replays finished rounds for
@@ -22,7 +23,7 @@ import httpx
 
 from .base import ProviderError
 
-RETRYABLE = {408, 409, 429, 500, 502, 503, 504, 529}
+RETRYABLE = {408, 409, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524, 529}
 
 
 class RateLimiter:
