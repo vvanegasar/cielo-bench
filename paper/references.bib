@@ -1,0 +1,580 @@
+% References for the cielo-bench v1.1.0 technical report.
+
+% ---------------------------------------------------------------- software
+@misc{vanegas2026cielobench,
+  author       = {Vanegas Aristiz{\'a}bal, Valentina},
+  title        = {cielo-bench: Check or agree? {A} benchmark of whether tool-using {AI} agents verify a user's claim or agree with it},
+  year         = {2026},
+  howpublished = {Software, version 1.1.0. Zenodo},
+  doi          = {10.5281/zenodo.24441942},
+  url          = {https://doi.org/10.5281/zenodo.24441942},
+  note         = {Source code: \url{https://github.com/vvanegasar/cielo-bench}}
+}
+
+% ---------------------------------------------------------------- sycophancy
+@inproceedings{perez2023discovering,
+  author    = {Perez, Ethan and Ringer, Sam and Luko{\v{s}}i{\=u}t{\.e}, Kamil{\.e} and Nguyen, Karina and Chen, Edwin and Heiner, Scott and Pettit, Craig and Olsson, Catherine and Kundu, Sandipan and Kadavath, Saurav and others},
+  title     = {Discovering Language Model Behaviors with Model-Written Evaluations},
+  booktitle = {Findings of the Association for Computational Linguistics: ACL 2023},
+  pages     = {13387--13434},
+  year      = {2023},
+  doi       = {10.18653/v1/2023.findings-acl.847},
+  note      = {arXiv:2212.09251}
+}
+
+@misc{sharma2023sycophancy,
+  author        = {Sharma, Mrinank and Tong, Meg and Korbak, Tomasz and Duvenaud, David and Askell, Amanda and Bowman, Samuel R. and Cheng, Newton and Durmus, Esin and Hatfield-Dodds, Zac and Johnston, Scott R. and Kravec, Shauna and Maxwell, Timothy and McCandlish, Sam and Ndousse, Kamal and Rausch, Oliver and Schiefer, Nicholas and Yan, Da and Zhang, Miranda and Perez, Ethan},
+  title         = {Towards Understanding Sycophancy in Language Models},
+  year          = {2023},
+  howpublished  = {arXiv:2310.13548},
+  url           = {https://arxiv.org/abs/2310.13548}
+}
+
+@misc{wei2023simple,
+  author        = {Wei, Jerry and Huang, Da and Lu, Yifeng and Zhou, Denny and Le, Quoc V.},
+  title         = {Simple synthetic data reduces sycophancy in large language models},
+  year          = {2023},
+  howpublished  = {arXiv:2308.03958},
+  url           = {https://arxiv.org/abs/2308.03958}
+}
+
+@misc{malmqvist2024sycophancy,
+  author        = {Malmqvist, Lars},
+  title         = {Sycophancy in Large Language Models: Causes and Mitigations},
+  year          = {2024},
+  howpublished  = {arXiv:2411.15287},
+  url           = {https://arxiv.org/abs/2411.15287}
+}
+
+@misc{fanous2025syceval,
+  author        = {Fanous, Aaron and Goldberg, Jacob and Agarwal, Ank A. and Lin, Joanna and Zhou, Anson and Daneshjou, Roxana and Koyejo, Sanmi},
+  title         = {{SycEval}: Evaluating {LLM} Sycophancy},
+  year          = {2025},
+  howpublished  = {arXiv:2502.08177},
+  url           = {https://arxiv.org/abs/2502.08177}
+}
+
+@misc{cheng2025elephant,
+  author        = {Cheng, Myra and Yu, Sunny and Lee, Cinoo and Khadpe, Pranav and Ibrahim, Lujain and Jurafsky, Dan},
+  title         = {{ELEPHANT}: Measuring and understanding social sycophancy in {LLMs}},
+  year          = {2025},
+  howpublished  = {arXiv:2505.13995},
+  url           = {https://arxiv.org/abs/2505.13995}
+}
+
+@misc{laban2023flipflop,
+  author        = {Laban, Philippe and Murakhovs'ka, Lidiya and Xiong, Caiming and Wu, Chien-Sheng},
+  title         = {Are You Sure? {C}hallenging {LLMs} Leads to Performance Drops in The {FlipFlop} Experiment},
+  year          = {2023},
+  howpublished  = {arXiv:2311.08596},
+  url           = {https://arxiv.org/abs/2311.08596}
+}
+
+@misc{ranaldi2023contradict,
+  author        = {Ranaldi, Leonardo and Pucci, Giulia},
+  title         = {When Large Language Models contradict humans? {L}arge Language Models' Sycophantic Behaviour},
+  year          = {2023},
+  howpublished  = {arXiv:2311.09410},
+  url           = {https://arxiv.org/abs/2311.09410}
+}
+
+@misc{petrov2025brokenmath,
+  author        = {Petrov, Ivo and Dekoninck, Jasper and Vechev, Martin},
+  title         = {{BrokenMath}: A Benchmark for Sycophancy in Theorem Proving with {LLMs}},
+  year          = {2025},
+  howpublished  = {arXiv:2510.04721},
+  url           = {https://arxiv.org/abs/2510.04721}
+}
+
+@inproceedings{hong2025sycon,
+  author    = {Hong, Jiseung and Byun, Grace and Kim, Seungone and Shu, Kai and Choi, Jinho D.},
+  title     = {Measuring Sycophancy of Language Models in Multi-turn Dialogues},
+  booktitle = {Findings of the Association for Computational Linguistics: EMNLP 2025},
+  pages     = {2239--2259},
+  year      = {2025},
+  note      = {arXiv:2505.23840}
+}
+
+@misc{tang2026spine,
+  author        = {Tang, Leyuan and Wei, Kangda and Jiang, Tianyu and Huang, Ruihong},
+  title         = {{SPINE}: Measuring {LLM} Sycophancy under Sustained Multi-Turn Pressure},
+  year          = {2026},
+  howpublished  = {arXiv:2609.09090},
+  url           = {https://arxiv.org/abs/2609.09090}
+}
+
+% ---------------------------------------------------------------- agents: sycophancy, deference, tool evidence
+@misc{waqas2025acc,
+  author        = {Waqas, Daud and Golthi, Aaryamaan and Hayashida, Erika and Mao, Huanzhi},
+  title         = {Assertion-Conditioned Compliance: A Provenance-Aware Vulnerability in Multi-Turn Tool-Calling Agents},
+  year          = {2025},
+  howpublished  = {arXiv:2512.00332},
+  url           = {https://arxiv.org/abs/2512.00332}
+}
+
+@misc{zhao2026price,
+  author        = {Zhao, Zhenyu and Balagopalan, Aparna and Agrawal, Adi and Yergasheva, Dilshoda and Alshikh, Waseem and Bikel, Daniel M.},
+  title         = {The Price of Agreement: Measuring {LLM} Sycophancy in Agentic Financial Applications},
+  year          = {2026},
+  howpublished  = {arXiv:2604.24668. Accepted to the ICLR 2026 FinAI Workshop},
+  url           = {https://arxiv.org/abs/2604.24668}
+}
+
+@misc{mao2026cave,
+  author        = {Mao, Xutao and Qian, Rui and Wang, Longxiang and Yi, Xinjian and Li, Mingxuan and Chen, Linghan and Gao, Yudong and Zheng, Xiang and Wang, Cong},
+  title         = {``{Y}ou're Right, Let Me Fix It'': How {LLM} Agents Damage Correct Work When Falsely Accused},
+  year          = {2026},
+  howpublished  = {arXiv:2609.32616},
+  url           = {https://arxiv.org/abs/2609.32616}
+}
+
+@misc{zhang2026agentdecept,
+  author        = {Zhang, Yehan and Yan, Qianqi and Yin, Hang and Kuo, Ching-Chen and Jiang, Shan and Ouyang, Ming and Liu, Yijie and Wang, Xin Eric},
+  title         = {{AgentDecept}: Benchmarking Deceptive Behavior in Tool-Using {LLM} Agents under Pressure},
+  year          = {2026},
+  howpublished  = {arXiv:2610.39377},
+  url           = {https://arxiv.org/abs/2610.39377}
+}
+
+@misc{xie2023chameleon,
+  author        = {Xie, Jian and Zhang, Kai and Chen, Jiangjie and Lou, Renze and Su, Yu},
+  title         = {Adaptive Chameleon or Stubborn Sloth: Revealing the Behavior of Large Language Models in Knowledge Conflicts},
+  year          = {2023},
+  howpublished  = {arXiv:2305.13300. ICLR 2024},
+  url           = {https://arxiv.org/abs/2305.13300}
+}
+
+@misc{yang2026overreliance,
+  author        = {Yang, Hoyeol and Song, Woojung and Kim, Taewon and Song, Jonghyun and Park, Seoyeon and Jo, Yohan},
+  title         = {Agents' Overreliance on Unreliable Tools},
+  year          = {2026},
+  howpublished  = {arXiv:2609.05587},
+  url           = {https://arxiv.org/abs/2609.05587}
+}
+
+% ---------------------------------------------------------------- false premises
+@inproceedings{yu2023crepe,
+  author    = {Yu, Xinyan Velocity and Min, Sewon and Zettlemoyer, Luke and Hajishirzi, Hannaneh},
+  title     = {{CREPE}: Open-Domain Question Answering with False Presuppositions},
+  booktitle = {Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)},
+  pages     = {10457--10480},
+  year      = {2023},
+  doi       = {10.18653/v1/2023.acl-long.583},
+  note      = {arXiv:2211.17257}
+}
+
+@misc{kim2022qa2,
+  author        = {Kim, Najoung and Htut, Phu Mon and Bowman, Samuel R. and Petty, Jackson},
+  title         = {{(QA)$^2$}: Question Answering with Questionable Assumptions},
+  year          = {2022},
+  howpublished  = {arXiv:2212.10003. ACL 2023},
+  url           = {https://arxiv.org/abs/2212.10003}
+}
+
+@misc{hu2023falseqa,
+  author        = {Hu, Shengding and Luo, Yifan and Wang, Huadong and Cheng, Xingyi and Liu, Zhiyuan and Sun, Maosong},
+  title         = {Won't Get Fooled Again: Answering Questions with False Premises},
+  year          = {2023},
+  howpublished  = {arXiv:2307.02394. ACL 2023},
+  url           = {https://arxiv.org/abs/2307.02394}
+}
+
+@misc{vu2023freshllms,
+  author        = {Vu, Tu and Iyyer, Mohit and Wang, Xuezhi and Constant, Noah and Wei, Jerry and Wei, Jason and Tar, Chris and Sung, Yun-Hsuan and Zhou, Denny and Le, Quoc and Luong, Thang},
+  title         = {{FreshLLMs}: Refreshing Large Language Models with Search Engine Augmentation},
+  year          = {2023},
+  howpublished  = {arXiv:2310.03214},
+  url           = {https://arxiv.org/abs/2310.03214}
+}
+
+@misc{yuan2024whispers,
+  author        = {Yuan, Hongbang and Cao, Pengfei and Jin, Zhuoran and Chen, Yubo and Zeng, Daojian and Liu, Kang and Zhao, Jun},
+  title         = {Whispers that Shake Foundations: Analyzing and Mitigating False Premise Hallucinations in Large Language Models},
+  year          = {2024},
+  howpublished  = {arXiv:2402.19103},
+  url           = {https://arxiv.org/abs/2402.19103}
+}
+
+% ---------------------------------------------------------------- tool-use and agent benchmarks
+@misc{li2023apibank,
+  author        = {Li, Minghao and Zhao, Yingxiu and Yu, Bowen and Song, Feifan and Li, Hangyu and Yu, Haiyang and Li, Zhoujun and Huang, Fei and Li, Yongbin},
+  title         = {{API-Bank}: A Comprehensive Benchmark for Tool-Augmented {LLMs}},
+  year          = {2023},
+  howpublished  = {arXiv:2304.08244. EMNLP 2023},
+  url           = {https://arxiv.org/abs/2304.08244}
+}
+
+@misc{qin2023toolllm,
+  author        = {Qin, Yujia and Liang, Shihao and Ye, Yining and Zhu, Kunlun and Yan, Lan and Lu, Yaxi and Lin, Yankai and Cong, Xin and Tang, Xiangru and Qian, Bill and Zhao, Sihan and Hong, Lauren and Tian, Runchu and Xie, Ruobing and Zhou, Jie and Gerstein, Mark and Li, Dahai and Liu, Zhiyuan and Sun, Maosong},
+  title         = {{ToolLLM}: Facilitating Large Language Models to Master 16000+ Real-world {APIs}},
+  year          = {2023},
+  howpublished  = {arXiv:2307.16789},
+  url           = {https://arxiv.org/abs/2307.16789}
+}
+
+@misc{liu2023agentbench,
+  author        = {Liu, Xiao and Yu, Hao and Zhang, Hanchen and Xu, Yifan and Lei, Xuanyu and Lai, Hanyu and Gu, Yu and Ding, Hangliang and Men, Kaiwen and Yang, Kejuan and Zhang, Shudan and Deng, Xiang and Zeng, Aohan and Du, Zhengxiao and Zhang, Chenhui and Shen, Sheng and Zhang, Tianjun and Su, Yu and Sun, Huan and Huang, Minlie and Dong, Yuxiao and Tang, Jie},
+  title         = {{AgentBench}: Evaluating {LLMs} as Agents},
+  year          = {2023},
+  howpublished  = {arXiv:2308.03688. ICLR 2024},
+  url           = {https://arxiv.org/abs/2308.03688}
+}
+
+@misc{mialon2023gaia,
+  author        = {Mialon, Gr{\'e}goire and Fourrier, Cl{\'e}mentine and Swift, Craig and Wolf, Thomas and LeCun, Yann and Scialom, Thomas},
+  title         = {{GAIA}: a benchmark for General {AI} Assistants},
+  year          = {2023},
+  howpublished  = {arXiv:2311.12983},
+  url           = {https://arxiv.org/abs/2311.12983}
+}
+
+@misc{yao2024taubench,
+  author        = {Yao, Shunyu and Shinn, Noah and Razavi, Pedram and Narasimhan, Karthik},
+  title         = {{$\tau$-bench}: A Benchmark for Tool-Agent-User Interaction in Real-World Domains},
+  year          = {2024},
+  howpublished  = {arXiv:2406.12045},
+  url           = {https://arxiv.org/abs/2406.12045}
+}
+
+@misc{yu2018spider,
+  author        = {Yu, Tao and Zhang, Rui and Yang, Kai and Yasunaga, Michihiro and Wang, Dongxu and Li, Zifan and Ma, James and Li, Irene and Yao, Qingning and Roman, Shanelle and Zhang, Zilin and Radev, Dragomir},
+  title         = {Spider: A Large-Scale Human-Labeled Dataset for Complex and Cross-Domain Semantic Parsing and Text-to-{SQL} Task},
+  year          = {2018},
+  howpublished  = {arXiv:1809.08887. EMNLP 2018},
+  url           = {https://arxiv.org/abs/1809.08887}
+}
+
+@misc{li2023bird,
+  author        = {Li, Jinyang and Hui, Binyuan and Qu, Ge and Yang, Jiaxi and Li, Binhua and Li, Bowen and Wang, Bailin and Qin, Bowen and Cao, Rongyu and Geng, Ruiying and Huo, Nan and Zhou, Xuanhe and Ma, Chenhao and Li, Guoliang and Chang, Kevin C. C. and Huang, Fei and Cheng, Reynold and Li, Yongbin},
+  title         = {Can {LLM} Already Serve as A Database Interface? {A} {BIg} Bench for Large-Scale Database Grounded Text-to-{SQLs}},
+  year          = {2023},
+  howpublished  = {arXiv:2305.03111. NeurIPS 2023},
+  url           = {https://arxiv.org/abs/2305.03111}
+}
+
+@misc{debenedetti2024agentdojo,
+  author        = {Debenedetti, Edoardo and Zhang, Jie and Balunovi{\'c}, Mislav and Beurer-Kellner, Luca and Fischer, Marc and Tram{\`e}r, Florian},
+  title         = {{AgentDojo}: A Dynamic Environment to Evaluate Prompt Injection Attacks and Defenses for {LLM} Agents},
+  year          = {2024},
+  howpublished  = {arXiv:2406.13352},
+  url           = {https://arxiv.org/abs/2406.13352}
+}
+
+% ---------------------------------------------------------------- abstention, hallucination, tool failure
+@misc{yin2023know,
+  author        = {Yin, Zhangyue and Sun, Qiushi and Guo, Qipeng and Wu, Jiawen and Qiu, Xipeng and Huang, Xuanjing},
+  title         = {Do Large Language Models Know What They Don't Know?},
+  year          = {2023},
+  howpublished  = {arXiv:2305.18153. Findings of ACL 2023},
+  url           = {https://arxiv.org/abs/2305.18153}
+}
+
+@article{wen2025abstention,
+  author  = {Wen, Bingbing and Yao, Jihan and Feng, Shangbin and Xu, Chenjun and Tsvetkov, Yulia and Howe, Bill and Wang, Lucy Lu},
+  title   = {Know Your Limits: A Survey of Abstention in Large Language Models},
+  journal = {Transactions of the Association for Computational Linguistics},
+  volume  = {13},
+  pages   = {529--556},
+  year    = {2025},
+  doi     = {10.1162/tacl_a_00754},
+  note    = {arXiv:2407.18418}
+}
+
+@misc{kirichenko2025abstentionbench,
+  author        = {Kirichenko, Polina and Ibrahim, Mark and Chaudhuri, Kamalika and Bell, Samuel J.},
+  title         = {{AbstentionBench}: Reasoning {LLMs} Fail on Unanswerable Questions},
+  year          = {2025},
+  howpublished  = {arXiv:2506.09038},
+  url           = {https://arxiv.org/abs/2506.09038}
+}
+
+@misc{chen2023rgb,
+  author        = {Chen, Jiawei and Lin, Hongyu and Han, Xianpei and Sun, Le},
+  title         = {Benchmarking Large Language Models in Retrieval-Augmented Generation},
+  year          = {2023},
+  howpublished  = {arXiv:2309.01431. AAAI 2024},
+  url           = {https://arxiv.org/abs/2309.01431}
+}
+
+@misc{yoran2023robust,
+  author        = {Yoran, Ori and Wolfson, Tomer and Ram, Ori and Berant, Jonathan},
+  title         = {Making Retrieval-Augmented Language Models Robust to Irrelevant Context},
+  year          = {2023},
+  howpublished  = {arXiv:2310.01558},
+  url           = {https://arxiv.org/abs/2310.01558}
+}
+
+@misc{sun2024toolsfail,
+  author        = {Sun, Jimin and Min, So Yeon and Chang, Yingshan and Bisk, Yonatan},
+  title         = {Tools Fail: Detecting Silent Errors in Faulty Tools},
+  year          = {2024},
+  howpublished  = {arXiv:2406.19228},
+  url           = {https://arxiv.org/abs/2406.19228}
+}
+
+@misc{zhang2024toolbehonest,
+  author        = {Zhang, Yuxiang and Chen, Jing and Wang, Junjie and Liu, Yaxin and Yang, Cheng and Shi, Chufan and Zhu, Xinyu and Lin, Zihao and Wan, Hanwen and Yang, Yujiu and Sakai, Tetsuya and Feng, Tian and Yamana, Hayato},
+  title         = {{ToolBeHonest}: A Multi-level Hallucination Diagnostic Benchmark for Tool-Augmented Large Language Models},
+  year          = {2024},
+  howpublished  = {arXiv:2406.20015},
+  url           = {https://arxiv.org/abs/2406.20015}
+}
+
+@misc{huang2025critictool,
+  author        = {Huang, Shiting and Fang, Zhen and Chen, Zehui and Yuan, Siyu and Ye, Junjie and Zeng, Yu and Chen, Lin and Mao, Qi and Zhao, Feng},
+  title         = {{CRITICTOOL}: Evaluating Self-Critique Capabilities of Large Language Models in Tool-Calling Error Scenarios},
+  year          = {2025},
+  howpublished  = {arXiv:2506.13977},
+  url           = {https://arxiv.org/abs/2506.13977}
+}
+
+@misc{soni2026toolfailbench,
+  author        = {Soni, Harsh},
+  title         = {{ToolFailBench}: Diagnosing Tool-Use Failures in {LLM} Agents},
+  year          = {2026},
+  howpublished  = {arXiv:2607.04686. ICML 2026 workshops AIWILD and FAGEN},
+  url           = {https://arxiv.org/abs/2607.04686}
+}
+
+@misc{sethi2026fabrication,
+  author        = {Sethi, Arham and Kenzhebayev, Arsen and Paturi, Saanvi and Raina, Vatsal and Raina, Vyas and Sheth, Ivaxi},
+  title         = {Fabrication After Tool Failure: Tool-Augmented Agents Assert Values Their Tools Did Not Return},
+  year          = {2026},
+  howpublished  = {arXiv:2609.14758},
+  url           = {https://arxiv.org/abs/2609.14758}
+}
+
+% ---------------------------------------------------------------- LLM judges
+@misc{zheng2023judging,
+  author        = {Zheng, Lianmin and Chiang, Wei-Lin and Sheng, Ying and Zhuang, Siyuan and Wu, Zhanghao and Zhuang, Yonghao and Lin, Zi and Li, Zhuohan and Li, Dacheng and Xing, Eric P. and Zhang, Hao and Gonzalez, Joseph E. and Stoica, Ion},
+  title         = {Judging {LLM}-as-a-Judge with {MT-Bench} and {Chatbot Arena}},
+  year          = {2023},
+  howpublished  = {arXiv:2306.05685. NeurIPS 2023 Datasets and Benchmarks Track},
+  url           = {https://arxiv.org/abs/2306.05685}
+}
+
+@inproceedings{thakur2025judging,
+  author    = {Thakur, Aman Singh and Choudhary, Kartik and Ramayapally, Venkat Srinik and Vaidyanathan, Sankaran and Hupkes, Dieuwke},
+  title     = {Judging the Judges: Evaluating Alignment and Vulnerabilities in {LLMs}-as-Judges},
+  booktitle = {Proceedings of the Fourth Workshop on Generation, Evaluation and Metrics (GEM$^2$)},
+  pages     = {404--430},
+  year      = {2025},
+  url       = {https://aclanthology.org/2025.gem-1.33/},
+  note      = {arXiv:2406.12624}
+}
+
+@misc{panickssery2024selfpref,
+  author        = {Panickssery, Arjun and Bowman, Samuel R. and Feng, Shi},
+  title         = {{LLM} Evaluators Recognize and Favor Their Own Generations},
+  year          = {2024},
+  howpublished  = {arXiv:2404.13076},
+  url           = {https://arxiv.org/abs/2404.13076}
+}
+
+@misc{wang2023notfair,
+  author        = {Wang, Peiyi and Li, Lei and Chen, Liang and Cai, Zefan and Zhu, Dawei and Lin, Binghuai and Cao, Yunbo and Liu, Qi and Liu, Tianyu and Sui, Zhifang},
+  title         = {Large Language Models are not Fair Evaluators},
+  year          = {2023},
+  howpublished  = {arXiv:2305.17926},
+  url           = {https://arxiv.org/abs/2305.17926}
+}
+
+% ---------------------------------------------------------------- statistics
+@misc{miller2024errorbars,
+  author        = {Miller, Evan},
+  title         = {Adding Error Bars to Evals: A Statistical Approach to Language Model Evaluations},
+  year          = {2024},
+  howpublished  = {arXiv:2411.00640},
+  url           = {https://arxiv.org/abs/2411.00640}
+}
+
+@misc{bowyer2025clt,
+  author        = {Bowyer, Sam and Aitchison, Laurence and Ivanova, Desi R.},
+  title         = {Position: Don't Use the {CLT} in {LLM} Evals With Fewer Than a Few Hundred Datapoints},
+  year          = {2025},
+  howpublished  = {arXiv:2503.01747. ICML 2025 position paper},
+  url           = {https://arxiv.org/abs/2503.01747}
+}
+
+@inproceedings{dror2018hitchhiker,
+  author    = {Dror, Rotem and Baumer, Gili and Shlomov, Segev and Reichart, Roi},
+  title     = {The Hitchhiker's Guide to Testing Statistical Significance in Natural Language Processing},
+  booktitle = {Proceedings of the 56th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)},
+  pages     = {1383--1392},
+  year      = {2018},
+  doi       = {10.18653/v1/P18-1128}
+}
+
+@inproceedings{card2020power,
+  author    = {Card, Dallas and Henderson, Peter and Khandelwal, Urvashi and Jia, Robin and Mahowald, Kyle and Jurafsky, Dan},
+  title     = {With Little Power Comes Great Responsibility},
+  booktitle = {Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing (EMNLP)},
+  pages     = {9263--9274},
+  year      = {2020},
+  doi       = {10.18653/v1/2020.emnlp-main.745},
+  note      = {arXiv:2010.06595}
+}
+
+@article{wilson1927probable,
+  author  = {Wilson, Edwin B.},
+  title   = {Probable Inference, the Law of Succession, and Statistical Inference},
+  journal = {Journal of the American Statistical Association},
+  volume  = {22},
+  number  = {158},
+  pages   = {209--212},
+  year    = {1927},
+  doi     = {10.1080/01621459.1927.10502953}
+}
+
+@article{brown2001interval,
+  author  = {Brown, Lawrence D. and Cai, T. Tony and DasGupta, Anirban},
+  title   = {Interval Estimation for a Binomial Proportion},
+  journal = {Statistical Science},
+  volume  = {16},
+  number  = {2},
+  pages   = {101--133},
+  year    = {2001},
+  doi     = {10.1214/ss/1009213286}
+}
+
+@article{mcnemar1947note,
+  author  = {McNemar, Quinn},
+  title   = {Note on the Sampling Error of the Difference Between Correlated Proportions or Percentages},
+  journal = {Psychometrika},
+  volume  = {12},
+  number  = {2},
+  pages   = {153--157},
+  year    = {1947},
+  doi     = {10.1007/BF02295996}
+}
+
+@article{connor1987sample,
+  author  = {Connor, Robert J.},
+  title   = {Sample Size for Testing Differences in Proportions for the Paired-Sample Design},
+  journal = {Biometrics},
+  volume  = {43},
+  number  = {1},
+  pages   = {207--211},
+  year    = {1987},
+  doi     = {10.2307/2531961}
+}
+
+@article{field2007bootstrapping,
+  author  = {Field, C. A. and Welsh, A. H.},
+  title   = {Bootstrapping Clustered Data},
+  journal = {Journal of the Royal Statistical Society Series B: Statistical Methodology},
+  volume  = {69},
+  number  = {3},
+  pages   = {369--390},
+  year    = {2007},
+  doi     = {10.1111/j.1467-9868.2007.00593.x}
+}
+
+@article{cameron2008bootstrap,
+  author  = {Cameron, A. Colin and Gelbach, Jonah B. and Miller, Douglas L.},
+  title   = {Bootstrap-Based Improvements for Inference with Clustered Errors},
+  journal = {Review of Economics and Statistics},
+  volume  = {90},
+  number  = {3},
+  pages   = {414--427},
+  year    = {2008},
+  doi     = {10.1162/rest.90.3.414}
+}
+
+% ---------------------------------------------------------------- data and documentation
+@article{gebru2021datasheets,
+  author  = {Gebru, Timnit and Morgenstern, Jamie and Vecchione, Briana and Vaughan, Jennifer Wortman and Wallach, Hanna and Daum{\'e} III, Hal and Crawford, Kate},
+  title   = {Datasheets for Datasets},
+  journal = {Communications of the ACM},
+  volume  = {64},
+  number  = {12},
+  pages   = {86--92},
+  year    = {2021},
+  doi     = {10.1145/3458723},
+  note    = {arXiv:1803.09010}
+}
+
+@article{giorgini1996horizons,
+  author  = {Giorgini, J. D. and Yeomans, D. K. and Chamberlin, A. B. and Chodas, P. W. and Jacobson, R. A. and Keesey, M. S. and Lieske, J. H. and Ostro, S. J. and Standish, E. M. and Wimberly, R. N.},
+  title   = {{JPL}'s On-Line Solar System Data Service},
+  journal = {Bulletin of the American Astronomical Society},
+  volume  = {28},
+  number  = {3},
+  pages   = {1158},
+  year    = {1996}
+}
+
+% ---------------------------------------------------------------- added in review
+@misc{tseng2026faultbench,
+  author       = {Tseng, Kuan-Hao and Bogahawatta, Niruth and Ginige, Yasod and Patel, Kunjan and Dakic, Kosta and Seneviratne, Suranga},
+  title        = {{FaulT-Bench}: Towards Benchmarking Network Troubleshooting {LLM} Agents under Unreliable User Tickets},
+  year         = {2026},
+  howpublished = {arXiv:2608.27021},
+  url          = {https://arxiv.org/abs/2608.27021}
+}
+
+@misc{zhu2026fta,
+  author       = {Zhu, Junru and Xie, Shiming and Chen, Aime Lu Fan and Ding, Xiaoqing and Tang, Chunxin and Qi, Ruoyu and Fei, Yulang},
+  title        = {Failure-Transparent Agents: Benchmarking Post-Failure Reporting in Tool-Using Language Models},
+  year         = {2026},
+  howpublished = {arXiv:2609.35732},
+  url          = {https://arxiv.org/abs/2609.35732}
+}
+
+@misc{varlamov2026memtoc,
+  author       = {Varlamov, Arseniy and Zinnatullin, Rishat and Rykov, Elisei and Panchenko, Alexander and Alimova, Ilseyar},
+  title        = {{MemToC}: Benchmarking Memory-Tool Conflict Resolution in Large Language Models},
+  year         = {2026},
+  howpublished = {arXiv:2608.26295},
+  url          = {https://arxiv.org/abs/2608.26295}
+}
+
+@misc{kumar2026authority,
+  author       = {Kumar, Abhinav Rajeev and Chopra, Paras},
+  title        = {Authority Bias in Language Models: Source Deference and User Agreement Are Not Interchangeable},
+  year         = {2026},
+  howpublished = {arXiv:2609.37616. NeurIPS 2026},
+  url          = {https://arxiv.org/abs/2609.37616}
+}
+
+@misc{wu2026xyeval,
+  author       = {Wu, Zhengxuan and Li, Yuxuan and Tafjord, Oyvind and Kim, Been},
+  title        = {{XYEval}: Agents say yes to bad advice},
+  year         = {2026},
+  howpublished = {arXiv:2609.23939},
+  url          = {https://arxiv.org/abs/2609.23939}
+}
+
+@misc{xie2026hoprefusal,
+  author       = {Xie, Jianan and Sun, Xin and Chen, Zhongqi and Zheng, Xing and Liu, Qiang and Song, Bowen},
+  title        = {{HopRefusalBench}: Diagnosing Refusal Failures in Search-Augmented Agents for Multi-Hop Reasoning},
+  year         = {2026},
+  howpublished = {arXiv:2608.01358},
+  url          = {https://arxiv.org/abs/2608.01358}
+}
+
+@misc{liu2026agentabstain,
+  author       = {Liu, Xun and Zhang, Yi Evie and Kasprova, Vira and Rabbani, Parisa and Zahraei, Pardis Sadat and Zhang, Tianyu and Ebrahimpour-Boroojeny, Ali and Chandrasekaran, Varun},
+  title        = {{AgentAbstain}: Do {LLM} Agents Know When Not to Act?},
+  year         = {2026},
+  howpublished = {arXiv:2607.10059},
+  url          = {https://arxiv.org/abs/2607.10059}
+}
+
+@misc{xie2026oversearching,
+  author       = {Xie, Roy and Gopinath, Deepak and Qiu, David and Lin, Dong and Sun, Haitian and Potdar, Saloni and Dhingra, Bhuwan},
+  title        = {Over-Searching in Search-Augmented Large Language Models},
+  year         = {2026},
+  howpublished = {arXiv:2601.05503. EACL 2026},
+  url          = {https://arxiv.org/abs/2601.05503}
+}
+
+@article{holm1979simple,
+  author  = {Holm, Sture},
+  title   = {A Simple Sequentially Rejective Multiple Test Procedure},
+  journal = {Scandinavian Journal of Statistics},
+  volume  = {6},
+  pages   = {65--70},
+  year    = {1979},
+  url     = {https://www.jstor.org/stable/4615733}
+}
