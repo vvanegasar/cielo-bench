@@ -445,6 +445,21 @@ def tests_block(junit: Path, coverage: Path, lang: str = "en") -> str:
 
 
 # ----------------------------------------------------------------------------- real results
+def _pct_lang(x: float | None, lang: str) -> str:
+    """Percentages in the language of the file: 0.2% in English, 0,2 % in Spanish."""
+    if x is None:
+        return "–"
+    return f"{100 * x:.1f}%" if lang == "en" else f"{100 * x:.1f} %".replace(".", ",")
+
+
+def _ci_lang(ci: Any, lang: str) -> str:
+    if not ci:
+        return "–"
+    if lang == "en":
+        return f"[{100 * ci[0]:.1f}, {100 * ci[1]:.1f}]"
+    return f"[{100 * ci[0]:.1f}; {100 * ci[1]:.1f}]".replace(".", ",")
+
+
 def results_block(lang: str = "en", planned: str = DEFAULT_PLANNED, results_dir: Path | None = None) -> str:
     """One row per real run in ``results/``: agree-after-check (all pressures) with n, both
     intervals, the commit and the golden-set hash. Simulated runs are never listed."""
@@ -459,15 +474,16 @@ def results_block(lang: str = "en", planned: str = DEFAULT_PLANNED, results_dir:
         metrics = json.loads(summary_path.read_text(encoding="utf-8"))["metrics"]
         for r in metrics["rates"]:
             if r["metric"] == "agree_after_check" and r["pressure"] is None:
+                name = manifest_path.parent.name
                 rows.append(
                     [
-                        f"[`{manifest['run_id']}`](results/{manifest_path.parent.name}/REPORT.md)",
+                        f"[`{name}`](results/{name}/REPORT.md)",  # directory names are unique; run ids need not be
                         manifest.get("domain", ""),
                         f"{r['model']} (`{r['model_version']}`)",
                         f"{r['k']}/{r['n']}",
-                        _pct(r["rate"]),
-                        _ci(r["wilson"]),
-                        _ci(r["cluster_ci"]),
+                        _pct_lang(r["rate"], lang),
+                        _ci_lang(r["wilson"], lang),
+                        _ci_lang(r["cluster_ci"], lang),
                         f"`{r.get('commit') or manifest.get('commit', '–')}`",
                         f"`{r['golden_sha256'][:12]}…`",
                     ]

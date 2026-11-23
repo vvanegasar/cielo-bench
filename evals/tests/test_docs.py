@@ -75,9 +75,11 @@ def test_results_block_shows_only_real_runs(tmp_path):
     table = docs.results_block("en", results_dir=tmp_path)
     assert "anthropic:m" in table and "3/30" in table and "x-simulated" not in table
     assert "`abc123def456`" in table and "`aaaaaaaaaaaa…`" in table  # every number carries commit and golden set
-    assert f"(results/{real.name}/REPORT.md)" in table
+    assert f"[`{real.name}`](results/{real.name}/REPORT.md)" in table  # the directory, unique even if run ids collide
+    assert "| 10.0% | [3.0, 26.0] | [2.0, 20.0] |" in table
     spanish = docs.results_block("es", results_dir=tmp_path)
     assert spanish.startswith("| Corrida | Dominio | Modelo (versión) |") and "3/30" in spanish
+    assert "| 10,0 % | [3,0; 26,0] | [2,0; 20,0] |" in spanish  # decimal commas in Spanish
 
 
 def test_tests_block_from_junit_and_coverage(tmp_path):
