@@ -83,6 +83,7 @@ TOOL_SPECS: list[dict[str, Any]] = [
             "required": [],
             "additionalProperties": False,
         },
+        "annotations": {"readOnlyHint": True},  # read-only: the MCP server serves only such tools
     },
     {
         "name": "run_sql",
@@ -106,6 +107,7 @@ TOOL_SPECS: list[dict[str, Any]] = [
             "required": ["sql"],
             "additionalProperties": False,
         },
+        "annotations": {"readOnlyHint": True},  # read-only: the MCP server serves only such tools
     },
 ]
 

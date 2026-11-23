@@ -18,7 +18,7 @@ from cielo_bench.domain import TOOL_STATUSES
 from cielo_bench.domains import get_domain
 from cielo_bench.golden import load_golden
 from cielo_mcp.contract import FAILURE_KEYS
-from cielo_mcp.domains import bind_tools
+from cielo_mcp.domains import SERVED_DOMAINS, bind_tools
 from cielo_mcp.server import ServerConfig, build_server
 
 from .server_support import MOON_AT_1930, SATURN_AT_21, SATURN_ON_DAY, VENUS_FROM_JUPITER, numbers_in
@@ -56,7 +56,7 @@ def golden_calls(name: str) -> tuple[Any, list[dict]]:
 
 
 def served_domains() -> dict[str, Any]:
-    return {name: d for name in registry.REGISTRY if (d := _registered(name)) is not None}
+    return {name: d for name in SERVED_DOMAINS if (d := _registered(name)) is not None}
 
 
 def benchmark_result(name: str, args: dict) -> dict:
@@ -87,9 +87,9 @@ async def test_every_domain_tool_is_listed_with_its_own_schema_and_annotations(m
 async def test_live_mode_marks_the_tools_open_world(mode):
     # Building a live server opens no connection; only a tool call outside the cache would.
     # A tool is open world only if its domain has a source outside the machine (external_source).
-    from cielo_bench.domains import AVAILABLE, get_domain
+    from cielo_bench.domains import get_domain
 
-    external = {spec["name"]: get_domain(name).external_source for name in AVAILABLE
+    external = {spec["name"]: get_domain(name).external_source for name in SERVED_DOMAINS
                 for spec in get_domain(name).tool_specs()}
     async with Client(build_server(ServerConfig(live=True)), mode=mode) as client:
         tools = (await client.list_tools()).tools
@@ -194,7 +194,7 @@ def _stable(obj):
     return obj
 
 
-@pytest.mark.parametrize("domain_name", list(registry.REGISTRY))
+@pytest.mark.parametrize("domain_name", list(SERVED_DOMAINS))
 async def test_every_golden_set_call_is_served_unchanged_and_cited(domain_name):
     domain, calls = golden_calls(domain_name)
     executor = domain.make_executor(offline=True, max_live_requests=0)
@@ -210,7 +210,7 @@ async def test_every_golden_set_call_is_served_unchanged_and_cited(domain_name):
 
 @pytest.mark.parametrize("domain_name,profile", [
     (name, profile)
-    for name in registry.REGISTRY
+    for name in SERVED_DOMAINS
     for profile in (getattr(_registered(name), "fault_profiles", None) or ("none-declared",))
 ])
 async def test_every_domain_fails_honestly_through_mcp(domain_name, profile):

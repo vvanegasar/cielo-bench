@@ -97,14 +97,33 @@ class _AsReceived(FuncMetadata):
         return {"arguments": dict(arguments_to_validate)}
 
 
+class NotReadOnly(RuntimeError):
+    """A served tool does not declare readOnlyHint: true in its spec. The server refuses to start."""
+
+
+def read_only(spec: Mapping[str, Any]) -> bool:
+    """Whether a tool spec declares itself read-only. A missing annotation counts as false (the MCP default)."""
+    return (spec.get("annotations") or {}).get("readOnlyHint") is True
+
+
 def make_tool(binding: ToolBinding, executor: ToolExecutor, *, open_world: bool) -> Tool:
-    """An MCP tool for one domain tool: the domain's own schema, run by the domain's executor."""
+    """An MCP tool for one domain tool: the domain's own schema, run by the domain's executor.
+
+    The annotations come from the spec. A spec without ``readOnlyHint`` counts as not read-only."""
     validate_and_warn_tool_name(binding.name)
     title = binding.spec.get("title")  # only if the domain gives one; clients then show the name
+    notes = dict(binding.spec.get("annotations") or {})
 
     def run(arguments: dict[str, Any]) -> CallToolResult:
         return to_call_tool_result(executor.execute(binding.tool, arguments))
 
+    hints: dict[str, Any] = {"read_only_hint": notes.get("readOnlyHint") is True}
+    if "destructiveHint" in notes:
+        hints["destructive_hint"] = bool(notes["destructiveHint"])
+    if "idempotentHint" in notes:
+        hints["idempotent_hint"] = bool(notes["idempotentHint"])
+    # a cache-only server never reaches outside the machine, whatever the spec says
+    hints["open_world_hint"] = open_world and bool(notes.get("openWorldHint", True))
     return Tool(
         fn=run,
         name=binding.name,
@@ -113,7 +132,7 @@ def make_tool(binding: ToolBinding, executor: ToolExecutor, *, open_world: bool)
         parameters=copy.deepcopy(dict(binding.spec["parameters"])),
         fn_metadata=_AsReceived(arg_model=_CallArguments, output_schema=RESULT_SCHEMA),
         is_async=False,  # the executor blocks on I/O, so the SDK runs it on a worker thread
-        annotations=ToolAnnotations(title=title, read_only_hint=True, open_world_hint=open_world),
+        annotations=ToolAnnotations(title=title, **hints),
     )
 
 
@@ -123,11 +142,14 @@ def build_server(
     domains: Mapping[str, Domain] | None = None,
     executor_factory: ExecutorFactory | None = None,
 ) -> MCPServer:
-    """The cielo MCP server, serving every domain that can be set up.
+    """The cielo MCP server, serving every allowlisted domain that can be set up.
 
-    ``domains`` defaults to every domain in the benchmark's registry. ``executor_factory``
+    ``domains`` defaults to the domains in ``SERVED_DOMAINS`` (an allowlist). ``executor_factory``
     replaces how executors are made; the tests use it to put a source down end to end, which
     the server itself never does.
+
+    The server refuses to start (``NotReadOnly``) unless every tool it would serve declares
+    ``readOnlyHint: true`` in its spec. The specs are checked before any executor is built.
     """
     config = config or ServerConfig()
     skipped: dict[str, str] = {}
@@ -137,7 +159,19 @@ def build_server(
     served: dict[str, _Served] = {}
     for name, domain in domains.items():
         try:
-            served[name] = _Served(domain, list(domain.tool_specs()), make_executor(domain))
+            specs = list(domain.tool_specs())
+        except Exception as exc:  # same isolation as loading: skip this domain, serve the rest
+            log.warning("domain %r could not be set up, skipping it: %r", name, exc)
+            skipped[name] = skip_reason(exc)
+            continue
+        writable = sorted(str(spec.get("name")) for spec in specs if not read_only(spec))
+        if writable:
+            raise NotReadOnly(
+                f"domain {name!r} has tools that do not declare readOnlyHint: true ({writable}); "
+                "the MCP server serves read-only tools only and refuses to start"
+            )
+        try:
+            served[name] = _Served(domain, specs, make_executor(domain))
         except Exception as exc:  # same isolation as loading: skip this domain, serve the rest
             log.warning("domain %r could not be set up, skipping it: %r", name, exc)
             skipped[name] = skip_reason(exc)

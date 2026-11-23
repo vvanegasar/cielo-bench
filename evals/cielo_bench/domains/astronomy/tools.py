@@ -62,6 +62,7 @@ TOOL_SPECS: list[dict[str, Any]] = [
             "required": ["body", "location", "datetime"],
             "additionalProperties": False,
         },
+        "annotations": {"readOnlyHint": True},  # read-only: the MCP server serves only such tools
     },
     {
         "name": "body_rise_set",
@@ -83,6 +84,7 @@ TOOL_SPECS: list[dict[str, Any]] = [
             "required": ["body", "location", "date"],
             "additionalProperties": False,
         },
+        "annotations": {"readOnlyHint": True},  # read-only: the MCP server serves only such tools
     },
     {
         "name": "moon_phase",
@@ -98,6 +100,7 @@ TOOL_SPECS: list[dict[str, Any]] = [
             "required": ["location", "datetime"],
             "additionalProperties": False,
         },
+        "annotations": {"readOnlyHint": True},  # read-only: the MCP server serves only such tools
     },
 ]
 
