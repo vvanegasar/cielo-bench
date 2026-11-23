@@ -1,0 +1,142 @@
+# Publish cielo-bench and cielo-mcp to PyPI with Trusted Publishing (OIDC): no API token is stored.
+# PyPI trusts this workflow file (publish.yml in vvanegasar/cielo-bench) in one GitHub environment per
+# project: cielo-bench in "pypi", cielo-mcp in "pypi-mcp".
+# Nothing is uploaded unless both packages build, pass twine check, install into a clean virtual
+# environment outside the repository, verify their golden sets offline and run a simulated design.
+# cielo-mcp depends on cielo-bench, so it is published second. If one upload fails, use "Re-run
+# failed jobs": it reuses this run's artifacts, and PyPI never accepts a file twice.
+name: publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  MPLBACKEND: Agg
+
+jobs:
+  build:
+    name: build and check both packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: The release tag matches the benchmark version
+        if: github.event_name == 'release'
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          if [ "$TAG" != "v$version" ]; then
+            echo "release tag $TAG does not match cielo-bench $version" >&2
+            exit 1
+          fi
+      - name: Build the sdist and the wheel of each package
+        run: |
+          python -m pip install build twine
+          python -m build --outdir dist/cielo-bench .
+          python -m build --outdir dist/cielo-mcp server
+          ls -l dist/*
+      - name: Check the distributions
+        run: python -m twine check --strict dist/cielo-bench/* dist/cielo-mcp/*
+      - name: Install the wheels into a clean virtual environment
+        run: |
+          python -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/python" -m pip install dist/cielo-bench/*.whl dist/cielo-mcp/*.whl
+      - name: Verify the golden sets and run a simulated design, outside the repository
+        working-directory: ${{ runner.temp }}
+        env:
+          CIELO_CACHE_DIR: ${{ runner.temp }}/live-cache
+        run: |
+          bin="$RUNNER_TEMP/venv/bin"
+          "$bin/python" -c "import cielo_bench.config as c; assert c.INSTALLED, 'not the installed wheel'; print(c.GOLDEN_DIR)"
+          for domain in $("$bin/python" -c "from cielo_bench.domains import AVAILABLE; print(' '.join(AVAILABLE))"); do
+            "$bin/cielo-bench" --domain "$domain" verify
+            "$bin/cielo-bench" --domain "$domain" reproduce --simulated --quick --quiet --out "reproduce-$domain"
+          done
+      - name: The installed MCP server starts over stdio and answers from the cached fixtures
+        working-directory: ${{ runner.temp }}
+        env:
+          CIELO_CACHE_DIR: ${{ runner.temp }}/live-cache
+        run: |
+          "$RUNNER_TEMP/venv/bin/cielo-mcp" --version
+          "$RUNNER_TEMP/venv/bin/python" - "$RUNNER_TEMP/venv/bin/cielo-mcp" <<'EOF'
+          import sys
+
+          import anyio
+          from mcp import Client, StdioServerParameters
+
+
+          async def main() -> None:
+              async with Client(StdioServerParameters(command=sys.argv[1])) as client:
+                  print("tools:", sorted(t.name for t in (await client.list_tools()).tools))
+                  result = await client.call_tool("body_position", {
+                      "body": "Saturn", "location": {"city": "Medellín"}, "datetime": "2026-12-12T21:00:00-05:00"})
+                  assert not result.is_error, result
+                  print("body_position altitude_deg:", result.structured_content["altitude_deg"])
+
+
+          anyio.run(main)
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-cielo-bench
+          path: dist/cielo-bench/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-cielo-mcp
+          path: dist/cielo-mcp/
+          if-no-files-found: error
+
+  publish-cielo-bench:
+    name: publish cielo-bench to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/cielo-bench/
+    permissions:
+      id-token: write  # Trusted Publishing; the job gets no other permission
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist-cielo-bench
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+
+  publish-cielo-mcp:
+    name: publish cielo-mcp to PyPI
+    needs: publish-cielo-bench  # it depends on cielo-bench, which must be on PyPI first
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi-mcp
+      url: https://pypi.org/project/cielo-mcp/
+    permissions:
+      id-token: write  # Trusted Publishing; the job gets no other permission
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist-cielo-mcp
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
