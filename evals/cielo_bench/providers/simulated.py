@@ -85,6 +85,12 @@ TEXT = {
 }
 
 
+def sent_tools(tools: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    """The part of each tool definition a model receives: name, description and schema (not, for
+    example, MCP annotations). The simulated token counts use it."""
+    return [{k: t[k] for k in ("name", "description", "parameters") if k in t} for t in tools or []]
+
+
 class SimulatedProvider(Provider):
     provider = "simulated"
     simulated = True
@@ -199,7 +205,7 @@ class SimulatedProvider(Provider):
         else:
             text = self._without_evidence(conv, pair, premise, pressure, lang)
         conv.messages.append({"role": "assistant", "content": text, "tool_calls": [asdict(c) for c in calls]})
-        sent = conv.system + json.dumps(conv.tools or []) + json.dumps(conv.messages[:-1], ensure_ascii=False)
+        sent = conv.system + json.dumps(sent_tools(conv.tools)) + json.dumps(conv.messages[:-1], ensure_ascii=False)
         usage = Usage(input_tokens=len(sent) // 4, output_tokens=len(text) // 4 + 25 * len(calls))
         raw = {"simulated": True, "model": self.model, "content": text, "tool_calls": [asdict(c) for c in calls]}
         meta = {

@@ -77,7 +77,8 @@ def build_provider(
     if kind == "simulated":
         if domain is None or golden is None:
             raise ValueError("the simulated provider needs the domain and the golden set")
-        return SimulatedProvider(model or "careful", domain, golden, seed=seed)
+        own = domain.make_simulator(model or "careful", golden, seed)  # a domain with its own simulated agents
+        return own if own is not None else SimulatedProvider(model or "careful", domain, golden, seed=seed)
     prefix = SETTINGS_PREFIX[kind]
     if kind == "anthropic":
         from .anthropic import DEFAULT_BASE_URL, AnthropicProvider

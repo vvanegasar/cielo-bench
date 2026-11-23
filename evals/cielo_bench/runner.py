@@ -38,9 +38,9 @@ from pathlib import Path
 from typing import Any
 
 from . import __version__
-from .agent import run_conversation
+from .agent import MAX_TOOL_ROUNDS, run_conversation
 from .config import PROJECT_ROOT, data_relpath, git_commit, user_agent
-from .domain import FAULT_KINDS, Domain, ToolExecutor
+from .domain import FAULT_KINDS, Domain, ToolExecutor, TrialContext
 from .golden import LANGS, PRESSURES, GoldenSet
 from .pricing import PRICES_AS_OF, cost_usd, price_for
 from .prompts import prompt_sha256, system_prompt
@@ -76,8 +76,8 @@ class RunSpec:
     run_id: str
     simulated: bool
     settings: dict[str, str] = field(default_factory=dict)
-    conditions: tuple[str, ...] = CONDITIONS
-    premises: tuple[str, ...] = PREMISES
+    conditions: tuple[str, ...] = ()  # empty: the domain's conditions, else CONDITIONS
+    premises: tuple[str, ...] = ()  # empty: the domain's premises (worlds), else PREMISES
     pressures: tuple[str, ...] = PRESSURES
     fault_pressures: tuple[str, ...] = ("assertive",)
     fault_limit: int | None = None
@@ -95,6 +95,12 @@ class RunSpec:
     keep_awake: bool = True  # macOS only, real runs only: hold an idle-sleep assertion during the run
     heartbeat_s: float = 60.0  # how often the watchdog looks at the run
     stall_warn_s: float = 300.0  # report when no trial has finished for this long (wall clock)
+
+    def __post_init__(self) -> None:
+        if not self.conditions:
+            self.conditions = self.domain.conditions() or CONDITIONS
+        if not self.premises:
+            self.premises = self.domain.premises() or PREMISES
 
 
 PROGRESS_EVERY = 50  # trials between progress lines
@@ -218,10 +224,14 @@ def _stderr(message: str) -> None:
     print(message, file=sys.stderr, flush=True)
 
 
-def round_robin(pairs: list[dict[str, Any]], limit: int | None) -> list[dict[str, Any]]:
-    """All pairs, or a subset taken round-robin across templates (keeps clusters balanced)."""
+def round_robin(pairs: list[dict[str, Any]], limit: int | None, *, interleave: bool = False) -> list[dict[str, Any]]:
+    """All pairs, or a subset taken round-robin across templates (keeps clusters balanced).
+
+    With ``interleave`` the pairs are taken round-robin even when all of them are kept."""
     if limit is None or limit >= len(pairs):
-        return list(pairs)
+        if not interleave:
+            return list(pairs)
+        limit = len(pairs)
     queues: dict[str, list[dict[str, Any]]] = {}
     for pair in pairs:
         queues.setdefault(pair["template"], []).append(pair)
@@ -237,13 +247,19 @@ def round_robin(pairs: list[dict[str, Any]], limit: int | None) -> list[dict[str
 
 
 def plan_trials(spec: RunSpec) -> list[TrialPlan]:
+    allowed = spec.domain.conditions() or CONDITIONS
     for condition in spec.conditions:
-        if condition not in CONDITIONS:
-            raise ValueError(f"unknown condition {condition!r}; choose from {CONDITIONS}")
+        if condition not in allowed:
+            raise ValueError(f"unknown condition {condition!r}; choose from {allowed}")
+    domain_premises = spec.domain.premises()
+    if domain_premises is not None:
+        for premise in spec.premises:
+            if premise not in domain_premises:
+                raise ValueError(f"unknown premise {premise!r}; choose from {domain_premises}")
     for pressure in (*spec.pressures, *spec.fault_pressures):
         if pressure not in PRESSURES:
             raise ValueError(f"unknown pressure {pressure!r}; choose from {PRESSURES}")
-    pairs = round_robin(spec.golden.pairs, spec.limit_pairs)
+    pairs = round_robin(spec.golden.pairs, spec.limit_pairs, interleave=spec.domain.interleave_templates)
     fault_ids = {p["pair_id"] for p in round_robin(pairs, spec.fault_limit)}
     plans = []
     for pair in pairs:
@@ -254,16 +270,64 @@ def plan_trials(spec: RunSpec) -> list[TrialPlan]:
                     is_fault = condition in FAULT_CONDITIONS
                     if is_fault and pair["pair_id"] not in fault_ids:
                         continue
+                    own = spec.domain.premises_for(condition, spec.premises)
+                    if premise in own:
+                        planned = premise
+                    elif premise == spec.premises[0] and own:
+                        planned = own[0]  # a condition with a premise of its own runs once per unit
+                    else:
+                        continue
                     for pressure in spec.fault_pressures if is_fault else spec.pressures:
                         for rep in range(spec.reps):
                             for index, provider in enumerate(spec.providers):
                                 trial_id = (
-                                    f"{provider.label}|{pair['pair_id']}|{lang}|{premise}|{pressure}|{condition}|r{rep}"
+                                    f"{provider.label}|{pair['pair_id']}|{lang}|{planned}|{pressure}|{condition}|r{rep}"
                                 )
                                 plans.append(
-                                    TrialPlan(trial_id, index, pair["pair_id"], premise, pressure, condition, lang, rep)
+                                    TrialPlan(trial_id, index, pair["pair_id"], planned, pressure, condition, lang, rep)
                                 )
     return plans
+
+
+def world_free_id(plan: TrialPlan, model_label: str) -> str:
+    """The trial id without its premise: the same for the trials of one unit in every world."""
+    return f"{model_label}|{plan.pair_id}|{plan.lang}|*|{plan.pressure}|{plan.condition}|r{plan.rep}"
+
+
+def trial_context(plan: TrialPlan, model_label: str) -> TrialContext:
+    return TrialContext(
+        trial_id=plan.trial_id,
+        world_free_id=world_free_id(plan, model_label),
+        model_label=model_label,
+        pair_id=plan.pair_id,
+        premise=plan.premise,
+        pressure=plan.pressure,
+        condition=plan.condition,
+        lang=plan.lang,
+        rep=plan.rep,
+    )
+
+
+def system_prompts(domain: Domain, conditions: tuple[str, ...]) -> dict[tuple[str, str], str]:
+    """The system prompt of each (language, condition)."""
+    return {(lang, c): system_prompt(domain, lang, c) for lang in LANGS for c in conditions}
+
+
+def prompts_for_manifest(prompts: dict[tuple[str, str], str]) -> dict[str, str]:
+    """By language when every condition shares its prompt (the usual case), else by ``lang|condition``."""
+    by_lang: dict[str, set[str]] = {}
+    for (lang, _condition), text in prompts.items():
+        by_lang.setdefault(lang, set()).add(text)
+    if all(len(texts) == 1 for texts in by_lang.values()):
+        return {lang: next(iter(texts)) for lang, texts in by_lang.items()}
+    return {f"{lang}|{c}": text for (lang, c), text in prompts.items()}
+
+
+def apply_effort(domain: Domain, providers: list[Provider]) -> None:
+    """Send the domain's effort level, when it sets one, to every model that takes one."""
+    if domain.effort:
+        for provider in providers:
+            provider.set_effort(domain.effort)
 
 
 def _iso(dt: datetime) -> str:
@@ -355,7 +419,9 @@ def execute_run(spec: RunSpec) -> Path:
         for provider in spec.providers:
             if isinstance(provider, HTTPProviderMixin):
                 provider.cache = ResponseCache(out / "cache")
-    systems = {lang: system_prompt(domain, lang) for lang in LANGS}
+    apply_effort(domain, spec.providers)
+    prompts = system_prompts(domain, spec.conditions)
+    systems = prompts_for_manifest(prompts)
     descriptions = [p.describe() for p in spec.providers]
     prices = [price_for(d, spec.settings) for d in descriptions]
     plans = plan_trials(spec)
@@ -408,14 +474,20 @@ def execute_run(spec: RunSpec) -> Path:
             "langs": spec.langs,
             "limit_pairs": spec.limit_pairs,
             "seed": spec.seed,
+            **({"effort": domain.effort} if domain.effort else {}),
         },
         "max_live_requests": spec.max_live_requests,
         "offline_source": spec.offline,
         "output_cache": spec.cache_outputs,
         "user_agent": user_agent(spec.settings),
-        "system_prompts_sha256": {lang: prompt_sha256(text) for lang, text in systems.items()},
+        "system_prompts_sha256": {key: prompt_sha256(text) for key, text in systems.items()},
         "system_prompts": systems,
         "tools": [t["name"] for t in tool_specs],
+        **(
+            {"tools_by_condition": {c: [t["name"] for t in domain.tools_for(c) or []] for c in spec.conditions}}
+            if domain.report_kind != "answer"
+            else {}
+        ),
         "n_trials_planned": len(plans),
         "n_trials_already_done": len(done),
         "max_usd": spec.max_usd,
@@ -436,16 +508,27 @@ def execute_run(spec: RunSpec) -> Path:
     def _run_one(plan: TrialPlan) -> dict[str, Any]:
         provider = spec.providers[plan.provider_index]
         pair = golden.pair(plan.pair_id)
-        question = GoldenSet.question(pair, plan.premise, plan.pressure, plan.lang)
-        offered = None if plan.condition == "no_tool" else tool_specs
-        conversation = run_conversation(
-            provider,
-            trial_id=plan.trial_id,
-            system=systems[plan.lang],
-            user_text=question,
-            tools=offered,
-            executor=executors.get(plan.condition),
-        )
+        ctx = trial_context(plan, provider.label)
+        question = domain.trial_text(pair, ctx) or GoldenSet.question(pair, plan.premise, plan.pressure, plan.lang)
+        offered = domain.tools_for(plan.condition)
+        sandbox = domain.open_trial(pair, ctx)
+        extra: dict[str, Any] = {}
+        try:
+            conversation = run_conversation(
+                provider,
+                trial_id=plan.trial_id,
+                system=prompts[(plan.lang, plan.condition)],
+                user_text=question,
+                tools=offered,
+                executor=sandbox.executor if sandbox is not None else executors.get(plan.condition),
+                max_tool_rounds=domain.round_caps(plan.condition) or MAX_TOOL_ROUNDS,
+                follow_up=sandbox.end_turn if sandbox is not None else None,
+            )
+        finally:
+            if sandbox is not None:
+                extra["sandbox"] = sandbox.record()
+                sandbox.close()
+        system_key = plan.lang if plan.lang in manifest["system_prompts_sha256"] else f"{plan.lang}|{plan.condition}"
         return {
             "trial_id": plan.trial_id,
             "run_id": run_id,
@@ -460,11 +543,12 @@ def execute_run(spec: RunSpec) -> Path:
             "condition": plan.condition,
             "rep": plan.rep,
             "fault_kind": FAULT_CONDITIONS.get(plan.condition),
-            "system_prompt_sha256": manifest["system_prompts_sha256"][plan.lang],
+            "system_prompt_sha256": manifest["system_prompts_sha256"][system_key],
             "user_text": question,
             "tools_offered": [t["name"] for t in offered or []],
             **conversation,
             "cost_usd": cost_usd(provider.provider, conversation["usage_total"], prices[plan.provider_index]),
+            **extra,
         }
 
     def record_done(record: dict[str, Any]) -> None:

@@ -202,3 +202,7 @@ class OpenAICompatProvider(HTTPProviderMixin, Provider):
             conv.messages.append(
                 {"role": "tool", "tool_call_id": call.id, "content": json.dumps(result, ensure_ascii=False)}
             )
+
+    def set_effort(self, effort: str) -> bool:
+        self.reasoning_effort = effort
+        return True

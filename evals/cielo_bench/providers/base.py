@@ -89,3 +89,12 @@ class Provider(ABC):
     @abstractmethod
     def add_tool_results(self, conv: Conversation, turn: Turn, results: list[dict[str, Any]]) -> None:
         """Append the results of ``turn.tool_calls`` (same order) to the conversation."""
+
+    def add_user_turn(self, conv: Conversation, text: str) -> None:
+        """Append a further user turn (a multi-turn trial). The output-cache salt counts assistant
+        messages, so every round of every turn keeps its own cache entry."""
+        conv.messages.append({"role": "user", "content": text})
+
+    def set_effort(self, effort: str) -> bool:
+        """Send this reasoning-effort level with every request. False if the model takes none."""
+        return False

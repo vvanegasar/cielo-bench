@@ -108,8 +108,8 @@ def _spec_from_args(
         run_id=run_id,
         simulated=simulated,
         settings=settings,
-        conditions=tuple(_csv(args.conditions)),
-        premises=tuple(_csv(args.premises)),
+        conditions=tuple(_csv(args.conditions or "")),  # empty: the domain's conditions
+        premises=tuple(_csv(args.premises or "")),  # empty: the domain's premises (worlds)
         pressures=tuple(_csv(args.pressures)),
         fault_pressures=tuple(_csv(args.fault_pressures)),
         fault_limit=args.fault_limit,
@@ -384,8 +384,13 @@ def _fmt_ci(ci: Any) -> str:
 
 
 def _add_design_args(p: argparse.ArgumentParser) -> None:
-    p.add_argument("--conditions", default=",".join(CONDITIONS))
-    p.add_argument("--premises", default=",".join(PREMISES))
+    p.add_argument("--conditions", help=f"default: the domain's conditions ({','.join(CONDITIONS)} for most)")
+    p.add_argument(
+        "--premises",
+        "--worlds",
+        dest="premises",
+        help=f"premises, or worlds in a domain that varies the data (default: the domain's; {','.join(PREMISES)})",
+    )
     p.add_argument("--pressures", default=",".join(PRESSURES), help="pressure levels for no_tool and tool")
     p.add_argument("--fault-pressures", default="assertive", help="pressure levels for the fault conditions")
     p.add_argument("--fault-limit", type=int, help="number of pairs in the fault block (default: all)")

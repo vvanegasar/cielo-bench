@@ -2,7 +2,8 @@
 
 The prompt is identical in every condition. The only difference between conditions is
 whether tool definitions are sent with the request (and, under faults, what they return).
-The examples in the VALUE line come from the domain (``Domain.value_examples``).
+The examples in the VALUE line come from the domain (``Domain.value_examples``). A domain
+with conditions outside answer mode (``Domain.answer_mode``) gets the role text alone there.
 """
 
 from __future__ import annotations
@@ -37,8 +38,13 @@ def answer_format(domain: Domain, lang: str) -> str:
     return ANSWER_FORMAT[lang].format(examples=examples)
 
 
-def system_prompt(domain: Domain, lang: str) -> str:
-    return domain.system_preamble(lang).strip() + "\n\n" + answer_format(domain, lang)
+def system_prompt(domain: Domain, lang: str, condition: str | None = None) -> str:
+    """The role text, plus the answer format in answer mode (``Domain.answer_mode``; always, in the
+    question-answering domains)."""
+    preamble = domain.system_preamble(lang).strip()
+    if condition is not None and not domain.answer_mode(condition):
+        return preamble
+    return preamble + "\n\n" + answer_format(domain, lang)
 
 
 def prompt_sha256(text: str) -> str:

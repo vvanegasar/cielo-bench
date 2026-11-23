@@ -144,3 +144,16 @@ class AnthropicProvider(HTTPProviderMixin, Provider):
                 block["is_error"] = True
             blocks.append(block)
         conv.messages.append({"role": "user", "content": blocks})  # all results in one message
+
+    def add_user_turn(self, conv: Conversation, text: str) -> None:
+        """A further user turn. After tool results it joins their message as a text block that follows
+        them, so user and assistant messages still alternate."""
+        last = conv.messages[-1] if conv.messages else None
+        if last and last.get("role") == "user" and isinstance(last.get("content"), list):
+            last["content"].append({"type": "text", "text": text})
+        else:
+            conv.messages.append({"role": "user", "content": text})
+
+    def set_effort(self, effort: str) -> bool:
+        self.effort = effort
+        return True
