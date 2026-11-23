@@ -68,6 +68,7 @@ packages = [
   "cielo_bench.domains",
   "cielo_bench.domains.astronomy",
   "cielo_bench.domains.tabular",
+  "cielo_bench.domains.tabular_act",
   "cielo_bench.providers",
   "cielo_bench._data.golden",
   "cielo_bench._data.fixtures",
