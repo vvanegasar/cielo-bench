@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cielo-bench"
-version = "1.0.0"
+version = "1.1.0"
 description = "Check or agree? A benchmark of whether tool-using AI agents verify a user's claim or agree with it, judged against verifiable ground truth (NASA/JPL Horizons) instead of an LLM judge."
 readme = "README.md"
 license = "MIT"
