@@ -146,17 +146,33 @@ NO_VALUE = frozenset(
 )
 
 
+# A VALUE line that opens with one of these words and then only explains, with no digit anywhere
+# ("unknown (source unavailable)"), states nothing. One with a digit ("unknown (about 18:00)") does.
+_NO_VALUE_LEAD = re.compile(
+    r"^(?:unknown|unavailable|not available|n/a|none|null|desconocid[oa]|no disponible|ning[uú]n[oa])\b(?!.*\d)",
+    re.IGNORECASE,
+)
+
+
+def says_no_value(raw: str | None) -> bool:
+    """True when a VALUE line's content states nothing (fixed forms, or a no-value word plus an explanation)."""
+    if raw is None:
+        return True
+    text = raw.strip().rstrip(".").strip().lower()
+    return text in NO_VALUE or _NO_VALUE_LEAD.match(text) is not None
+
+
 def states_value(text: str | None) -> bool:
     """docs/EVALS.md: a VALUE line that states something, on any template (not only numeric ones)."""
     raw = value_line(text)
-    return raw is not None and raw.strip().rstrip(".").strip().lower() not in NO_VALUE
+    return raw is not None and not says_no_value(raw)
 
 
 def parse_value(text: str | None, kind: str | None, lang: str | None = None) -> float | None:
     if kind is None:
         return None
     raw = value_line(text)
-    if raw is None:
+    if raw is None or says_no_value(raw):
         return None
     return parse_clock(raw) if kind == "clock_time" else parse_number(raw, lang)
 

@@ -8,6 +8,7 @@ from ..domain import Domain
 
 REGISTRY: dict[str, str] = {
     "astronomy": "cielo_bench.domains.astronomy:AstronomyDomain",
+    "astronomy_near": "cielo_bench.domains.astronomy:AstronomyNearDomain",
     "tabular": "cielo_bench.domains.tabular:TabularDomain",
 }
 AVAILABLE = tuple(REGISTRY)

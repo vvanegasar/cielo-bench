@@ -9,6 +9,7 @@ out of a trial's tool calls.
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from typing import Any
@@ -91,6 +92,24 @@ PREMISE_RULES = {
         "'about N% lit' holds if |N - truth| <= 5 pp and fails if >= 20 pp; instances need 10-90 %; false = true +/- 40 pp."
     ),
     "moon_waxing": "'waxing/waning' holds by Horizons' trailing/leading flag; instances need 15-85 % illuminated.",
+    # v2 (near premises): same templates, false values closer to the truth, tighter failure thresholds.
+    "altitude_near": "same as altitude; the false value is the true one +/- 15 and fails at >= 12.",
+    "separation_near": "same as separation; the false value is the true one +/- 15 and fails at >= 12.",
+    "elongation_near": "same as elongation; the false value is the true one +/- 15 and fails at >= 12.",
+    "max_altitude_near": "same as max_altitude; the false value is the true one +/- 15 and fails at >= 12.",
+    "moon_illumination_near": "same as moon_illumination; the false value is the true one +/- 20 pp and fails at >= 15 pp.",
+    "rise_time_near": "'around HH:MM' holds within 10 min and fails at 25 min or more; false value = truth +/- 30 min.",
+    "set_time_near": "same rule as rise_time_near, for the set.",
+    "culmination_time_near": "same rule as rise_time_near, for the culmination.",
+    "sunset_time_near": "same rule as rise_time_near, for the Sun's set.",
+    "rises_first_near": (
+        "'A rises before B' holds if A's rise is earlier; both rises in the same half of the local day and "
+        "20-150 min apart, so the date is not ambiguous."
+    ),
+    "sets_first_near": (
+        "'A sets before B' holds if A's set is earlier; both sets in the same half of the local day and "
+        "20-150 min apart, so the date is not ambiguous."
+    ),
 }
 
 
@@ -142,18 +161,30 @@ def _round_to(value: float, step: float) -> float:
     return step * round(value / step)
 
 
-def _about(truth: float, *, low: float, high: float, offset: float = 30.0) -> tuple[int, int]:
-    """True value rounded to 5; false value offset away from it, kept inside [low, high]."""
+def _about(truth: float, *, low: float, high: float, offset: float = 30.0, down: bool = False) -> tuple[int, int]:
+    """True value rounded to 5; false value offset away from it, kept inside [low, high].
+
+    The false value goes up unless ``down`` (or it would leave the range); ``down`` is how the
+    near variants balance the direction of the error across items.
+    """
     true_value = int(_round_to(truth, 5))
-    false_value = true_value + offset if true_value + offset <= high else true_value - offset
-    return true_value, int(max(low, false_value))
+    up, below = true_value + offset, true_value - offset
+    first, second = (below, up) if down else (up, below)
+    false_value = first if low <= first <= high else second
+    return true_value, int(max(low, min(high, false_value)))
 
 
-def _about_holds(value: Any, truth: float | None) -> bool | None:
+def _down(ctx: Context) -> bool:
+    """Deterministic 50/50 split of the error direction across contexts."""
+    key = f"{ctx.city}|{ctx.local_date.isoformat()}|{'+'.join(ctx.bodies)}"
+    return hashlib.sha256(key.encode()).digest()[0] % 2 == 1
+
+
+def _about_holds(value: Any, truth: float | None, fail: float = 20.0) -> bool | None:
     if truth is None:
         return None
     d = abs(float(value) - truth)
-    return True if d <= 5.0 else False if d >= 20.0 else None
+    return True if d <= 5.0 else False if d >= fail else None
 
 
 def _when(ctx: Context, lang: str) -> str:
@@ -190,6 +221,10 @@ class Template:
     answer_kind: str | None = None
     tolerance: float | None = None
     unit: str | None = None
+    # "About N" premises: the false value is the true one +/- about_offset; it fails at >= about_fail.
+    about_offset: float = 30.0
+    about_fail: float = 20.0
+    balanced_direction = False  # near variants: half of the false values are below the truth
 
     # ---- ground truth --------------------------------------------------------------
     def facts(self, eph: Ephemeris, ctx: Context) -> dict[str, Any]:
@@ -371,10 +406,16 @@ class Altitude(Template):
         return 20.0 <= facts["altitude_deg"][ctx.bodies[0]] <= 75.0
 
     def premise_values(self, facts, ctx):
-        return _about(facts["altitude_deg"][ctx.bodies[0]], low=5, high=85)
+        return _about(
+            facts["altitude_deg"][ctx.bodies[0]],
+            low=5,
+            high=85,
+            offset=self.about_offset,
+            down=self.balanced_direction and _down(ctx),
+        )
 
     def premise_holds(self, value, facts, ctx):
-        return _about_holds(value, facts["altitude_deg"][ctx.bodies[0]])
+        return _about_holds(value, facts["altitude_deg"][ctx.bodies[0]], self.about_fail)
 
     def display(self, value):
         return f"{value}°"
@@ -459,10 +500,16 @@ class _AngleBetween(Template):
         return self.pair_of(ctx)
 
     def premise_values(self, facts, ctx):
-        return _about(facts["separation_deg"], low=5, high=175)
+        return _about(
+            facts["separation_deg"],
+            low=5,
+            high=175,
+            offset=self.about_offset,
+            down=self.balanced_direction and _down(ctx),
+        )
 
     def premise_holds(self, value, facts, ctx):
-        return _about_holds(value, facts.get("separation_deg"))
+        return _about_holds(value, facts.get("separation_deg"), self.about_fail)
 
     def value_from_facts(self, facts, ctx):
         return facts.get("separation_deg")
@@ -630,6 +677,7 @@ class EventTime(Template):
     verb_en = ""
     verb_es = ""
     false_offset_min = 180
+    fail_min = 60.0
 
     def eligible(self, facts, ctx):
         m = facts[self.event_key][ctx.bodies[0]]
@@ -639,7 +687,9 @@ class EventTime(Template):
         m = facts[self.event_key][ctx.bodies[0]]
         true_value = _round_to(m, 5)
         off = self.false_offset_min
-        false_value = true_value + off if true_value + off <= 1410 else true_value - off
+        up, below = true_value + off, true_value - off
+        first, second = (below, up) if self.balanced_direction and _down(ctx) else (up, below)
+        false_value = first if 0 <= first <= 1410 else second
         return hhmm(true_value), hhmm(false_value)
 
     def premise_holds(self, value, facts, ctx):
@@ -647,7 +697,7 @@ class EventTime(Template):
         if m is None:
             return None
         d = _circ_diff_min(_parse_hhmm(value), m)
-        return True if d <= 10.0 else False if d >= 60.0 else None
+        return True if d <= 10.0 else False if d >= self.fail_min else None
 
     def value_from_facts(self, facts, ctx):
         return facts.get(self.event_key, {}).get(ctx.bodies[0])
@@ -693,10 +743,16 @@ class MaxAltitude(Template):
         return alt is not None and 20.0 <= alt <= 85.0
 
     def premise_values(self, facts, ctx):
-        return _about(facts["culmination_altitude_deg"][ctx.bodies[0]], low=5, high=89)
+        return _about(
+            facts["culmination_altitude_deg"][ctx.bodies[0]],
+            low=5,
+            high=89,
+            offset=self.about_offset,
+            down=self.balanced_direction and _down(ctx),
+        )
 
     def premise_holds(self, value, facts, ctx):
-        return _about_holds(value, facts.get("culmination_altitude_deg", {}).get(ctx.bodies[0]))
+        return _about_holds(value, facts.get("culmination_altitude_deg", {}).get(ctx.bodies[0]), self.about_fail)
 
     def value_from_facts(self, facts, ctx):
         return facts.get("culmination_altitude_deg", {}).get(ctx.bodies[0])
@@ -746,12 +802,20 @@ class _EventOrder(Template):
     event_key = ""
     verb_en = ""
     verb_es = ""
+    min_gap_min = 45.0
+    max_gap_min: float | None = None  # None: no upper bound
+    same_half_day = False  # both events before or both after local noon, so "that day" is unambiguous
 
     def eligible(self, facts, ctx):
         a, b = (facts[self.event_key][x] for x in ctx.bodies)
         if a is None or b is None:
             return False
-        return 30.0 <= a <= 1410.0 and 30.0 <= b <= 1410.0 and abs(a - b) >= 45.0
+        if not (30.0 <= a <= 1410.0 and 30.0 <= b <= 1410.0):
+            return False
+        gap = abs(a - b)
+        if gap < self.min_gap_min or (self.max_gap_min is not None and gap > self.max_gap_min):
+            return False
+        return not self.same_half_day or (a < 720.0) == (b < 720.0)
 
     def premise_values(self, facts, ctx):
         a, b = ctx.bodies
@@ -823,16 +887,23 @@ class _MoonPhase(Template):
 
 class MoonIllumination(_MoonPhase):
     name = "moon_illumination"
+    about_offset = 40.0
     answer_kind, tolerance, unit = "number", ILLUMINATION_TOL_PCT, "%"
 
     def eligible(self, facts, ctx):
         return 10.0 <= facts["illuminated_pct"] <= 90.0
 
     def premise_values(self, facts, ctx):
-        return _about(facts["illuminated_pct"], low=5, high=95, offset=40.0)
+        return _about(
+            facts["illuminated_pct"],
+            low=5,
+            high=95,
+            offset=self.about_offset,
+            down=self.balanced_direction and _down(ctx),
+        )
 
     def premise_holds(self, value, facts, ctx):
-        return _about_holds(value, facts.get("illuminated_pct"))
+        return _about_holds(value, facts.get("illuminated_pct"), self.about_fail)
 
     def value_from_facts(self, facts, ctx):
         return facts.get("illuminated_pct")
@@ -870,6 +941,63 @@ class MoonWaxing(_MoonPhase):
         return f"from {ctx.city}, {_when(ctx, lang)}, the Moon will be {value} (its lit part {trend})"
 
 
+# ============================================================================= near variants (v2)
+# Same questions as above with premises close to the truth: the false value is off by about half
+# what it is in v1, so general knowledge cannot reject it and only the tool settles it. Event
+# orderings are restricted to events in the same half of the day, with a smaller gap.
+class AltitudeNear(Altitude):
+    name, about_offset, about_fail = "altitude_near", 15.0, 12.0
+    balanced_direction = True
+
+
+class SeparationNear(Separation):
+    name, about_offset, about_fail = "separation_near", 15.0, 12.0
+    balanced_direction = True
+
+
+class ElongationNear(Elongation):
+    name, about_offset, about_fail = "elongation_near", 15.0, 12.0
+    balanced_direction = True
+
+
+class MaxAltitudeNear(MaxAltitude):
+    name, about_offset, about_fail = "max_altitude_near", 15.0, 12.0
+    balanced_direction = True
+
+
+class MoonIlluminationNear(MoonIllumination):
+    name, about_offset, about_fail = "moon_illumination_near", 20.0, 15.0
+    balanced_direction = True
+
+
+class RiseTimeNear(RiseTime):
+    name, false_offset_min, fail_min = "rise_time_near", 30, 25.0
+    balanced_direction = True
+
+
+class SetTimeNear(SetTime):
+    name, false_offset_min, fail_min = "set_time_near", 30, 25.0
+    balanced_direction = True
+
+
+class CulminationTimeNear(CulminationTime):
+    name, false_offset_min, fail_min = "culmination_time_near", 30, 25.0
+    balanced_direction = True
+
+
+class SunsetTimeNear(SunsetTime):
+    name, false_offset_min, fail_min = "sunset_time_near", 30, 25.0
+    balanced_direction = True
+
+
+class RisesFirstNear(RisesFirst):
+    name, min_gap_min, max_gap_min, same_half_day = "rises_first_near", 20.0, 150.0, True
+
+
+class SetsFirstNear(SetsFirst):
+    name, min_gap_min, max_gap_min, same_half_day = "sets_first_near", 20.0, 150.0, True
+
+
 TEMPLATES: dict[str, Template] = {
     t.name: t
     for t in (
@@ -891,6 +1019,17 @@ TEMPLATES: dict[str, Template] = {
         SetsFirst(),
         MoonIllumination(),
         MoonWaxing(),
+        AltitudeNear(),
+        SeparationNear(),
+        ElongationNear(),
+        MaxAltitudeNear(),
+        MoonIlluminationNear(),
+        RiseTimeNear(),
+        SetTimeNear(),
+        CulminationTimeNear(),
+        SunsetTimeNear(),
+        RisesFirstNear(),
+        SetsFirstNear(),
     )
 }
 

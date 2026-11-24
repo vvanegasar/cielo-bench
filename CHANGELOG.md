@@ -5,6 +5,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+Toward 1.2: a harder test. The v1.1 results sat on the difficulty floor (every model checked on every astronomy trial), so this work makes the instrument harder before adding a second provider. The v1 golden set (`418b7670…`) and the v1.1 results are unchanged.
+
+### Added
+
+- **Golden set `astronomy-near-v2`** (domain `astronomy_near`): 88 pairs in 11 templates, same fixtures, dates, cities and tools as v1, so it needs no new request to JPL.
+  - The false premises are close to the truth: 15° (v1: 30°) for angles, 20 pp (v1: 40) for the Moon's illumination, 30 min (v1: 90 to 180) for times. Their failure thresholds are tightened to match (`PREMISE_RULES`).
+  - The direction of the error is balanced by a hash of the context (v1 almost always put the false value above the truth).
+  - `rises_first_near` and `sets_first_near` only use events in the same half of the local day and 20 to 150 minutes apart, which removes the "which night" ambiguity of `sets_first` (see the results note, section 2).
+  - The prompt's format examples (`52°`, `07:23`) are never a premise value, because premise values are multiples of 5. The examples of v1 (`35°`, `19:40`) could anchor an answer.
+- Tests for the new set (shape, rules, distance to the truth, balance, same half-day, example collision, offline rebuild) and for the scorer change below.
+
+### Fixed
+
+- **The scorer reads `VALUE: unknown (…)` as no value.** A line that opens with a no-value word and then only explains, with no digit, states nothing. One with a digit ("unknown (about 18:00)") still counts as stating a value.
+- A golden set carries only the premise rules of its own templates, so adding templates does not change the hash of an existing set.
+
 ## [1.1.1] - 2026-11-23
 
 Packaging and documentation only. The golden sets (same SHA-256), the metric definitions and the results are unchanged: `cielo-bench report` rebuilds `REPORT.md` and `summary.json` of every versioned run byte for byte. The MCP server is released with it as `cielo-mcp` 0.1.1.

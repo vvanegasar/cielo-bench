@@ -101,6 +101,26 @@ PLAN: dict[str, Any] = {
     "seed": "cielo-bench/astronomy/v1.1",
 }
 
+# v2: the numeric and event-order templates again, with premises close to the truth (see
+# ``templates.PREMISE_RULES``). Same fixtures, dates and cities as v1: it needs no new request to JPL.
+PLAN_NEAR: dict[str, Any] = {
+    **PLAN,
+    "template_order": [
+        "altitude_near",
+        "separation_near",
+        "elongation_near",
+        "max_altitude_near",
+        "moon_illumination_near",
+        "rise_time_near",
+        "set_time_near",
+        "culmination_time_near",
+        "sunset_time_near",
+        "rises_first_near",
+        "sets_first_near",
+    ],
+    "seed": "cielo-bench/astronomy-near/v2",
+}
+
 DEFINITIONS = {
     "altitude": "Apparent altitude with atmospheric refraction (Horizons APPARENT='REFRACTED', column Elev_(r-app)), degrees.",
     "azimuth": "Apparent azimuth (Azi_(r-app)), degrees from north through east.",
@@ -129,30 +149,30 @@ def _round(value: Any) -> Any:
     return value
 
 
-def fixture_grid() -> list[tuple[str, str, date]]:
+def fixture_grid(plan: dict[str, Any] = PLAN) -> list[tuple[str, str, date]]:
     grid = []
-    for city, dates in PLAN["dates"].items():
+    for city, dates in plan["dates"].items():
         for d in dates:
-            for body in PLAN["bodies"] + PLAN["extra_bodies"]:
+            for body in plan["bodies"] + plan["extra_bodies"]:
                 grid.append((body, city, date.fromisoformat(d)))
     return grid
 
 
-def _candidates(template_name: str) -> list[Context]:
+def _candidates(template_name: str, plan: dict[str, Any] = PLAN) -> list[Context]:
     template = TEMPLATES[template_name]
-    pool = list(template.bodies_pool or PLAN["bodies"])
+    pool = list(template.bodies_pool or plan["bodies"])
     combos = [(b,) for b in pool] if template.n_bodies == 1 else list(itertools.combinations(pool, 2))
     out = []
-    for city, plan_dates in PLAN["dates"].items():
-        dates = PLAN["moon_dates"] if template.kind == "moon" else plan_dates
+    for city, plan_dates in plan["dates"].items():
+        dates = plan["moon_dates"] if template.kind == "moon" else plan_dates
         for d in dates:
             for combo in combos:
                 if template.kind in ("position", "moon"):
-                    for slot in PLAN["time_slots"]:
+                    for slot in plan["time_slots"]:
                         out.append(Context(city, date.fromisoformat(d), combo, time.fromisoformat(slot)))
                 else:
                     out.append(Context(city, date.fromisoformat(d), combo, None))
-    random.Random(f"{PLAN['seed']}/{template_name}").shuffle(out)
+    random.Random(f"{plan['seed']}/{template_name}").shuffle(out)
     return out
 
 
@@ -166,6 +186,7 @@ def _pick(
     used_bodies: Counter[str],
     used_dates: Counter[tuple[str, date]],
     body_limit: int,
+    plan: dict[str, Any] = PLAN,
 ):
     template = TEMPLATES[name]
     balance = template.balance
@@ -180,7 +201,7 @@ def _pick(
                 continue
             if relax < 1 and (
                 any(used_bodies[b] >= body_limit for b in ctx.bodies)
-                or used_dates[(ctx.city, ctx.local_date)] >= PLAN["max_pairs_per_city_date"]
+                or used_dates[(ctx.city, ctx.local_date)] >= plan["max_pairs_per_city_date"]
             ):
                 continue
             facts = template.facts(eph, ctx)
@@ -196,13 +217,15 @@ def _pick(
 def build_golden(
     domain: AstronomyDomain, *, offline: bool = False, max_requests: int | None = 80, settings: Any = None
 ) -> dict[str, Any]:
+    plan = getattr(domain, "plan", PLAN)
+    version = getattr(domain, "version", VERSION)
     client = domain.client(offline=offline, max_live_requests=max_requests, settings=settings, write_fixtures=True)
     eph = Ephemeris(client)
     fixtures = []
     try:
-        for city_name in PLAN["dates"]:
+        for city_name in plan["dates"]:
             city = CITIES[city_name]
-            instant = datetime.fromisoformat(PLAN["dates"][city_name][0]).replace(tzinfo=city.tz)
+            instant = datetime.fromisoformat(plan["dates"][city_name][0]).replace(tzinfo=city.tz)
             phase = eph.phase_table(city, instant)
             fixtures.append(
                 {
@@ -214,7 +237,7 @@ def build_golden(
                     "retrieved_at_utc": phase.source.retrieved_at_utc,
                 }
             )
-        for body, city_name, d in fixture_grid():
+        for body, city_name, d in fixture_grid(plan):
             table = eph.day_table(body, CITIES[city_name], d)
             fixtures.append(
                 {
@@ -235,20 +258,20 @@ def build_golden(
 
     pairs: list[dict[str, Any]] = []
     global_used: set[Context] = set()
-    n_per_template = len(PLAN["city_pattern"])
-    for t_index, name in enumerate(PLAN["template_order"]):
+    n_per_template = len(plan["city_pattern"])
+    for t_index, name in enumerate(plan["template_order"]):
         template = TEMPLATES[name]
-        candidates = _candidates(name)
+        candidates = _candidates(name, plan)
         used_bodies: Counter[str] = Counter()
         used_dates: Counter[tuple[str, date]] = Counter()
-        body_limit = math.ceil(n_per_template * template.n_bodies / len(PLAN["bodies"]))
-        for i, city in enumerate(PLAN["city_pattern"]):
+        body_limit = math.ceil(n_per_template * template.n_bodies / len(plan["bodies"]))
+        for i, city in enumerate(plan["city_pattern"]):
             # Planned city first; if it has no eligible instance, the other cities in plan order.
-            options = [city] + [c for c in PLAN["dates"] if c != city]
+            options = [city] + [c for c in plan["dates"] if c != city]
             for n, option in enumerate(options):
                 try:
                     ctx, facts, true_value, false_value = _pick(
-                        name, i, option, candidates, eph, global_used, used_bodies, used_dates, body_limit
+                        name, i, option, candidates, eph, global_used, used_bodies, used_dates, body_limit, plan
                     )
                     break
                 except BuildError:
@@ -287,9 +310,9 @@ def build_golden(
 
     client.close()
     return {
-        "name": f"cielo-bench golden set: astronomy {VERSION}",
+        "name": f"cielo-bench golden set: {domain.name} {version}",
         "domain": domain.name,
-        "version": VERSION,
+        "version": version,
         "schema_version": SCHEMA_VERSION,
         "created_utc": datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "description": (
@@ -302,13 +325,13 @@ def build_golden(
             "time_min": TIME_TOL_MIN,
             "position_match_min": POSITION_MATCH_MIN,
         },
-        "premise_rules": PREMISE_RULES,
+        "premise_rules": {k: v for k, v in PREMISE_RULES.items() if k in plan["template_order"]},
         "definitions": DEFINITIONS,
         "locations": {
             n: {"lat": c.lat, "lon": c.lon, "elevation_m": c.elevation_m, "utc_offset": "-05:00"}
             for n, c in CITIES.items()
         },
-        "plan": PLAN,
+        "plan": plan,
         "credits": list(domain.credits),
         "fixtures": fixtures,
         "pairs": pairs,

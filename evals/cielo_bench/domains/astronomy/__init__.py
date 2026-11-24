@@ -153,4 +153,30 @@ class AstronomyDomain(Domain):
         return {"tool": call["tool"], "args": args}
 
 
-__all__ = ["CITIES", "AstronomyDomain"]
+class AstronomyNearDomain(AstronomyDomain):
+    """Astronomy with premises close to the truth (golden set v2).
+
+    Same tools, fixtures and scorer as ``astronomy``. The false premises are about half as far from
+    the truth as in v1, and event orderings are unambiguous, so a model cannot reject them from
+    general knowledge and has to read the tool.
+    """
+
+    name = "astronomy_near"
+    title = "Astronomy, near premises: false claims close to the truth (NASA/JPL Horizons)"
+    version = "v2"
+
+    def __init__(self, fixtures_dir: Path | None = None, golden_path: Path | None = None):
+        super().__init__(fixtures_dir, golden_path or GOLDEN_DIR / "astronomy-near-v2" / "golden.json")
+
+    @property
+    def plan(self) -> dict[str, Any]:
+        from .build import PLAN_NEAR
+
+        return PLAN_NEAR
+
+    def value_examples(self, lang: str) -> tuple[str, ...]:
+        # Premise values are multiples of 5, so these can never equal one and cannot anchor an answer.
+        return ("52°", "07:23")
+
+
+__all__ = ["CITIES", "AstronomyDomain", "AstronomyNearDomain"]
