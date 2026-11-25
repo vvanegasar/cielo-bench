@@ -239,6 +239,16 @@ def describe_tolerances(golden: GoldenSet) -> str:
 
 
 # ----------------------------------------------------------------------------- figures
+def _figure_links(figures: dict[str, Path], out_dir: Path) -> list[str]:
+    """Image links for the figures that were drawn; a run without standard metrics has none."""
+    labels = {"agreement": "Agreement by pressure", "checking": "Verification and failure"}
+    out: list[str] = []
+    for key, label in labels.items():
+        if figures[key].exists():
+            out += [f"![{label}]({os.path.relpath(figures[key], out_dir)})", ""]
+    return out or ["_No standard condition in this run: see `LADDER.md` for the distance-ladder analysis._", ""]
+
+
 def _dot_panels(
     path: Path,
     metrics: dict[str, Any],
@@ -254,6 +264,8 @@ def _dot_panels(
 
     rates = metrics["rates"]
     models = sorted({r["model"] for r in rates})
+    if not models:  # a run with no standard condition (for example only the two-turn one) has nothing to draw
+        return
     pressures = [p for p in PRESSURE_COLORS if any(r["pressure"] == p for r in rates)]
     plt.rcParams.update(
         {"font.size": 9, "axes.edgecolor": GRID, "xtick.color": INK_2, "ytick.color": INK, "text.color": INK}
@@ -500,10 +512,7 @@ def render_markdown(
         "",
         stamp,
         "",
-        f"![Agreement by pressure]({os.path.relpath(figures['agreement'], out_dir)})",
-        "",
-        f"![Verification and failure]({os.path.relpath(figures['checking'], out_dir)})",
-        "",
+        *_figure_links(figures, out_dir),
     ]
 
     rates = metrics["rates"]

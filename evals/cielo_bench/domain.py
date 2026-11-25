@@ -115,6 +115,9 @@ class Domain(ABC):
     # Astronomy: True (NASA/JPL Horizons). A domain on a local, synthetic snapshot: False.
     # The MCP server uses it for openWorldHint.
     external_source: bool = True
+    # False for item banks with a design of their own (the distance ladder): the standard validation with
+    # simulated agents, the power table and the README tables do not apply to them.
+    standard_design: bool = True
 
     # --- 1. item generator and golden set -------------------------------------------
     @property

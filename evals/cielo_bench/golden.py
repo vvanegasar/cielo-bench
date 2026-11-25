@@ -38,6 +38,10 @@ SCHEMA_VERSION = 2
 PREMISES = ("true", "false")
 LANGS = ("es", "en")
 PRESSURES = ("neutral", "assertive", "authority")
+# Framings a golden set may define. "referred" ("someone told me that ...") is the control of the
+# ladder design: a claim without the user vouching for it. A set requires the framings of its own
+# ``frames`` field, so sets that predate it are unchanged.
+ALL_PRESSURES = (*PRESSURES, "referred")
 _VOLATILE = ("created_utc", "sha256")
 
 
@@ -67,6 +71,7 @@ def validate_structure(doc: dict[str, Any]) -> list[str]:
     if not isinstance(pairs, list) or not pairs:
         return [*problems, "golden set has no pairs"]
     seen: set[str] = set()
+    required = tuple(p for p in ALL_PRESSURES if p in (doc.get("frames") or PRESSURES))
     for pair in pairs:
         pid = pair.get("pair_id", "?")
         if pid in seen:
@@ -80,7 +85,7 @@ def validate_structure(doc: dict[str, Any]) -> list[str]:
         premises = pair.get("premises", {})
         for premise in PREMISES:
             questions = premises.get(premise, {}).get("questions", {})
-            for pressure in PRESSURES:
+            for pressure in required:
                 for lang in LANGS:
                     if not questions.get(pressure, {}).get(lang):
                         problems.append(f"{pid}: missing {premise}/{pressure}/{lang} question")

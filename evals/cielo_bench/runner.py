@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -41,7 +42,7 @@ from . import __version__
 from .agent import run_conversation
 from .config import PROJECT_ROOT, data_relpath, git_commit, user_agent
 from .domain import FAULT_KINDS, Domain, ToolExecutor
-from .golden import LANGS, PRESSURES, GoldenSet
+from .golden import ALL_PRESSURES, LANGS, PRESSURES, GoldenSet
 from .pricing import PRICES_AS_OF, cost_usd, price_for
 from .prompts import prompt_sha256, system_prompt
 from .providers.base import Provider
@@ -50,6 +51,10 @@ from .providers.http import HTTPProviderMixin, ResponseCache
 CORE_CONDITIONS = ("no_tool", "tool")
 FAULT_CONDITIONS = {f"fault_{kind}": kind for kind in FAULT_KINDS}
 CONDITIONS = CORE_CONDITIONS + tuple(FAULT_CONDITIONS)
+# Multi-turn: a tool trial whose first answer is followed by fixed user messages (one branch each, from
+# the same first answer). Never part of a default design: ask for it with --conditions tool_insist.
+INSIST_CONDITIONS = ("tool_insist",)
+ALL_CONDITIONS = CONDITIONS + INSIST_CONDITIONS
 TOOL_CONDITIONS = ("tool", *FAULT_CONDITIONS)
 PREMISES = ("true", "false")
 COT = timezone(timedelta(hours=-5), "COT")
@@ -84,6 +89,7 @@ class RunSpec:
     reps: int = 1
     langs: str = "assigned"  # "assigned" (one language per pair) or "both"
     limit_pairs: int | None = None
+    pair_filter: str | None = None  # regular expression on pair_id (for example the steps of a ladder)
     seed: int = 20261206
     workers: int = 1
     max_usd: float | None = None
@@ -236,14 +242,33 @@ def round_robin(pairs: list[dict[str, Any]], limit: int | None) -> list[dict[str
     return chosen
 
 
+def followup_messages(golden: GoldenSet, pair: dict[str, Any], plan: TrialPlan) -> dict[str, str]:
+    """The fixed second-turn messages of a pair, one per branch, in the trial's language.
+
+    They come from the golden set (``followup_frames`` and each premise's ``claim``), so the wording
+    is versioned and covered by its hash. They never depend on what the model answered.
+    """
+    frames = golden.doc.get("followup_frames")
+    if not frames:
+        raise ValueError(f"golden set {golden.path.name} defines no followup_frames: condition tool_insist needs them")
+    claim = pair["premises"][plan.premise]["claim"][plan.lang]
+    return {branch: text[plan.lang].format(claim=claim) for branch, text in frames.items()}
+
+
 def plan_trials(spec: RunSpec) -> list[TrialPlan]:
     for condition in spec.conditions:
-        if condition not in CONDITIONS:
-            raise ValueError(f"unknown condition {condition!r}; choose from {CONDITIONS}")
+        if condition not in ALL_CONDITIONS:
+            raise ValueError(f"unknown condition {condition!r}; choose from {ALL_CONDITIONS}")
+    framings = tuple(p for p in ALL_PRESSURES if p in (spec.golden.doc.get("frames") or PRESSURES))
     for pressure in (*spec.pressures, *spec.fault_pressures):
-        if pressure not in PRESSURES:
-            raise ValueError(f"unknown pressure {pressure!r}; choose from {PRESSURES}")
-    pairs = round_robin(spec.golden.pairs, spec.limit_pairs)
+        if pressure not in framings:
+            raise ValueError(f"unknown pressure {pressure!r}; this golden set defines {framings}")
+    selected = spec.golden.pairs
+    if spec.pair_filter:
+        selected = [p for p in selected if re.search(spec.pair_filter, p["pair_id"])]
+        if not selected:
+            raise ValueError(f"--pair-filter {spec.pair_filter!r} matches no pair")
+    pairs = round_robin(selected, spec.limit_pairs)
     fault_ids = {p["pair_id"] for p in round_robin(pairs, spec.fault_limit)}
     plans = []
     for pair in pairs:
@@ -284,10 +309,12 @@ def relative(path: Path) -> str:
 
 def make_executors(spec: RunSpec) -> dict[str, ToolExecutor | None]:
     executors: dict[str, ToolExecutor | None] = {"no_tool": None}
-    if "tool" in spec.conditions:
+    if "tool" in spec.conditions or any(c in spec.conditions for c in INSIST_CONDITIONS):
         executors["tool"] = spec.domain.make_executor(
             offline=spec.offline, max_live_requests=spec.max_live_requests, settings=spec.settings
         )
+        for condition in INSIST_CONDITIONS:
+            executors[condition] = executors["tool"]  # same source, same request budget
     for condition, kind in FAULT_CONDITIONS.items():
         if condition in spec.conditions:
             if kind not in spec.domain.fault_profiles:
@@ -407,6 +434,7 @@ def execute_run(spec: RunSpec) -> Path:
             "reps": spec.reps,
             "langs": spec.langs,
             "limit_pairs": spec.limit_pairs,
+            "pair_filter": spec.pair_filter,
             "seed": spec.seed,
         },
         "max_live_requests": spec.max_live_requests,
@@ -438,6 +466,7 @@ def execute_run(spec: RunSpec) -> Path:
         pair = golden.pair(plan.pair_id)
         question = GoldenSet.question(pair, plan.premise, plan.pressure, plan.lang)
         offered = None if plan.condition == "no_tool" else tool_specs
+        followups = followup_messages(golden, pair, plan) if plan.condition in INSIST_CONDITIONS else None
         conversation = run_conversation(
             provider,
             trial_id=plan.trial_id,
@@ -445,6 +474,7 @@ def execute_run(spec: RunSpec) -> Path:
             user_text=question,
             tools=offered,
             executor=executors.get(plan.condition),
+            followups=followups,
         )
         return {
             "trial_id": plan.trial_id,

@@ -110,7 +110,8 @@ def _spec_from_args(
         settings=settings,
         conditions=tuple(_csv(args.conditions)),
         premises=tuple(_csv(args.premises)),
-        pressures=tuple(_csv(args.pressures)),
+        pressures=tuple(_csv(args.pressures)) if args.pressures else tuple(golden.doc.get("frames") or PRESSURES),
+        pair_filter=args.pair_filter,
         fault_pressures=tuple(_csv(args.fault_pressures)),
         fault_limit=args.fault_limit,
         reps=args.reps,
@@ -300,6 +301,22 @@ def cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ladder(args: argparse.Namespace) -> int:
+    """Analyse a distance-ladder run: curve and H1, plus the confirmatory family when a config freezes the steps."""
+    from .ladder import analyze, render
+    from .report import score_run
+
+    _, scored, _ = score_run(args.run_dir)
+    config = json.loads(args.config.read_text(encoding="utf-8")) if args.config else None
+    result = analyze(scored, config)
+    out = args.out or args.run_dir
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "LADDER.md").write_text(render(result), encoding="utf-8")
+    (out / "ladder_summary.json").write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(out / "LADDER.md")
+    return 0
+
+
 def cmd_compare(args: argparse.Namespace) -> int:
     from .compare import compare
 
@@ -386,7 +403,12 @@ def _fmt_ci(ci: Any) -> str:
 def _add_design_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--conditions", default=",".join(CONDITIONS))
     p.add_argument("--premises", default=",".join(PREMISES))
-    p.add_argument("--pressures", default=",".join(PRESSURES), help="pressure levels for no_tool and tool")
+    p.add_argument(
+        "--pressures",
+        default=None,
+        help="framings for no_tool and tool (default: every framing the golden set defines)",
+    )
+    p.add_argument("--pair-filter", default=None, help="only pairs whose id matches this regular expression")
     p.add_argument("--fault-pressures", default="assertive", help="pressure levels for the fault conditions")
     p.add_argument("--fault-limit", type=int, help="number of pairs in the fault block (default: all)")
     p.add_argument("--reps", type=int, default=1)
@@ -468,6 +490,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("run_dir", type=Path)
     p.add_argument("--out", type=Path, help="output directory (default: the run directory)")
     p.set_defaults(func=cmd_report)
+
+    p = sub.add_parser("ladder", help="analyse a distance-ladder run (curve, H1; contrasts with a frozen config)")
+    p.add_argument("run_dir", type=Path)
+    p.add_argument("--config", type=Path, help="JSON that freezes grey_steps (and insist_steps, equivalence_bound)")
+    p.add_argument("--out", type=Path, help="output directory (default: the run directory)")
+    p.set_defaults(func=cmd_ladder)
 
     p = sub.add_parser("compare", help="compare models from several runs on the units they all share")
     p.add_argument("run_dirs", type=Path, nargs="+")

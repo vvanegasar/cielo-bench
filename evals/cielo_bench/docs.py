@@ -152,10 +152,14 @@ def _ci(ci: Any) -> str:
     return "–" if not ci else f"[{100 * ci[0]:.1f}, {100 * ci[1]:.1f}]"
 
 
-def _domains() -> list[tuple[Domain, GoldenSet | None]]:
+def _domains(*, standard_only: bool = True) -> list[tuple[Domain, GoldenSet | None]]:
+    """The domains the README documents. ``standard_only`` leaves out item banks with a design of their own
+    (the ladder): they have a golden set to list, but not the standard validation or the power table."""
     out = []
     for name in AVAILABLE:
         domain = get_domain(name)
+        if standard_only and not domain.standard_design:
+            continue
         try:
             golden = load_golden(domain.golden_path)
         except Exception:  # a domain without a valid golden set is listed as such
@@ -168,7 +172,7 @@ def _domains() -> list[tuple[Domain, GoldenSet | None]]:
 def golden_block(lang: str = "en") -> str:
     t = L[lang]
     summary, details = [], []
-    for domain, golden in _domains():
+    for domain, golden in _domains(standard_only=False):
         if golden is None:
             summary.append([domain.name, "–", "–", "–", "–", "–", "golden set missing"])
             continue
@@ -471,6 +475,8 @@ def results_block(lang: str = "en", planned: str = DEFAULT_PLANNED, results_dir:
         summary_path = manifest_path.parent / "summary.json"
         if manifest.get("any_simulated") or not summary_path.exists():
             continue
+        if manifest.get("domain") in {n for n in AVAILABLE if not get_domain(n).standard_design}:
+            continue  # agree-after-check is not the headline of those designs: see their own report
         metrics = json.loads(summary_path.read_text(encoding="utf-8"))["metrics"]
         for r in metrics["rates"]:
             if r["metric"] == "agree_after_check" and r["pressure"] is None:

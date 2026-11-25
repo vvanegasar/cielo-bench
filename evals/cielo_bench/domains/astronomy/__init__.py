@@ -179,4 +179,41 @@ class AstronomyNearDomain(AstronomyDomain):
         return ("52°", "07:23")
 
 
-__all__ = ["CITIES", "AstronomyDomain", "AstronomyNearDomain"]
+class AstronomyLadderDomain(AstronomyNearDomain):
+    """The distance ladder over the numeric items of the near set (golden set ``astronomy-ladder-v1``).
+
+    Same tools, fixtures and scorer. Each step of the ladder is one pair; see ``ladder.py`` for what the
+    two premises of a ladder pair mean. The set is derived from ``astronomy-near-v2`` and needs no source.
+    """
+
+    name = "astronomy_ladder"
+    standard_design = False
+    title = "Astronomy, distance ladder: one claim at several distances from the tool's value (NASA/JPL Horizons)"
+    version = "v1"
+
+    def __init__(self, fixtures_dir: Path | None = None, golden_path: Path | None = None):
+        super().__init__(fixtures_dir, golden_path or GOLDEN_DIR / "astronomy-ladder-v1" / "golden.json")
+
+    def _base(self) -> Any:
+        from ...golden import load_golden
+
+        return load_golden(AstronomyNearDomain(self.fixtures_dir).golden_path)
+
+    def build_golden(self, **_: Any) -> dict[str, Any]:
+        from .ladder import build_ladder_golden
+
+        return build_ladder_golden(self, self._base())
+
+    def verify_golden(self, golden: Any) -> list[str]:
+        from .ladder import verify_ladder
+
+        base = self._base()
+        return [*AstronomyNearDomain.verify_golden(self, base), *verify_ladder(base, golden)]
+
+    def value_examples(self, lang: str) -> tuple[str, ...]:
+        # Claims are whole numbers and whole minutes; examples with a decimal and an odd minute that no
+        # ladder claim uses (checked in the tests) cannot anchor an answer.
+        return ("36.4°", "19:07")
+
+
+__all__ = ["CITIES", "AstronomyDomain", "AstronomyLadderDomain", "AstronomyNearDomain"]

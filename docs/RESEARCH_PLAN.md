@@ -1,7 +1,13 @@
 # Research plan: does the way a user holds a claim move the point where an agent stops agreeing?
 
 Status: **draft, not preregistered** · 2026-11-24 (Colombia time) · author: Valentina Vanegas Aristizábal.
-It supersedes the "v1.2" and "v1.3" rows of the [ROADMAP](../ROADMAP.md) for the research line. Nothing below has been run yet except step 0.
+It supersedes the "v1.2" and "v1.3" rows of the [ROADMAP](../ROADMAP.md) for the research line.
+
+**Implementation status (2026-11-24).** Step 0 (reanalysis) and step 1 (code) are done: golden set `astronomy-ladder-v1`
+(544 pairs, 72 items), the `referred` framing, the `tool_insist` condition, the analysis (`cielo-bench ladder`), the
+planted personas that validate it, tests, and [ADR-0010](adr/0010-distance-ladder-and-two-turn-condition.md). A first
+real two-turn run worked against the API. Nothing confirmatory has been run. **Measured cost:** a two-turn trial with
+Haiku is US$0.0019, 2.3 times a single-turn tool trial (the assumption in section 6 was one extra trial per turn 2).
 
 ## 1. Why this plan
 

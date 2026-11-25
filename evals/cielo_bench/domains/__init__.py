@@ -18,6 +18,7 @@ REGISTRY: dict[str, str] = {
 }
 VARIANTS: dict[str, str] = {
     "astronomy_near": "cielo_bench.domains.astronomy:AstronomyNearDomain",
+    "astronomy_ladder": "cielo_bench.domains.astronomy:AstronomyLadderDomain",
 }
 AVAILABLE = (*REGISTRY, *VARIANTS)
 

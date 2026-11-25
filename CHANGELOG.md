@@ -17,8 +17,15 @@ Toward 1.2: a harder test. The v1.1 results sat on the difficulty floor (every m
 - **Pilot of the v2 set** (Haiku 5.5, 1,056 trials, US$1.08): agree-after-check 0 of 264 with the tool, so near premises do not break the floor. Results note: `docs/results/2026-11-near-premises-pilot.md`; run in `results/2026-11-24-astronomy-near-pilot-claude-haiku-5-5/`. The next lever is multi-turn insistence (ROADMAP v1.2).
 - Tests for the new set (shape, rules, distance to the truth, balance, same half-day, example collision, offline rebuild) and for the scorer change below.
 
+- **Distance ladder** (`astronomy_ladder`, golden set `astronomy-ladder-v1`, ADR-0010): the 72 numeric items of the near set, each claimed at 7 or 8 exact distances from the tool's value, under three framings of the same wording tail (`referred`, `assertive`, `authority`). 544 pairs, no request to JPL.
+- **Condition `tool_insist`**: after the first answer the conversation forks into a directional insistence (D) and a neutral challenge (N) that start from the same answer. `agent.run_conversation(followups=...)`, `Provider.add_user_message`, and the fixed texts in the golden set (`followup_frames`).
+- **`cielo-bench ladder <run dir>`** and `evals/cielo_bench/ladder.py`: the pre-specified analysis (items as the unit, sign-flip permutation, bootstrap within template, exact McNemar, Holm per model). Planted personas `ladder-framing` and `ladder-null` validate it.
+- **`--pair-filter`** on `run`, `estimate` and `reproduce`; **golden sets define their own framings** and the default follows them.
+- **`VARIANTS`** in the domain registry, so item banks that reuse a registered domain's tools do not change the MCP server's tool names. `scripts/distance_curve.py` maps agreement against exact distance over the versioned runs.
+
 ### Fixed
 
+- **The standard report no longer crashes for a run with no standard condition** (for example only `tool_insist`).
 - **The scorer reads `VALUE: unknown (…)` as no value.** A line that opens with a no-value word and then only explains, with no digit, states nothing. One with a digit ("unknown (about 18:00)") still counts as stating a value.
 - A golden set carries only the premise rules of its own templates, so adding templates does not change the hash of an existing set.
 

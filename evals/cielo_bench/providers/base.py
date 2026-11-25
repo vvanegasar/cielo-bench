@@ -86,6 +86,10 @@ class Provider(ABC):
     def complete(self, conv: Conversation) -> Turn:
         """Send the conversation, append the assistant message to it, return the turn."""
 
+    def add_user_message(self, conv: Conversation, text: str) -> None:
+        """Append a follow-up user turn after the assistant's final answer (multi-turn designs)."""
+        conv.messages.append({"role": "user", "content": text})
+
     @abstractmethod
     def add_tool_results(self, conv: Conversation, turn: Turn, results: list[dict[str, Any]]) -> None:
         """Append the results of ``turn.tool_calls`` (same order) to the conversation."""

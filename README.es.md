@@ -195,12 +195,15 @@ Generada por `cielo-bench docs --update-readme-tables` a partir de la última co
 | `astronomy` (v1) | 144 | 18 | Medellín 90, Bogotá 36, Barranquilla 18 | EN 72, ES 72 | 101 | `418b7670808b5aff…` |
 | `tabular` (v1) | 126 | 7 | – | EN 63, ES 63 | 1 | `19ecd57668e529e0…` |
 | `astronomy_near` (v2) | 88 | 11 | Medellín 55, Bogotá 22, Barranquilla 11 | EN 44, ES 44 | 101 | `a7dcf245b92237eb…` |
+| `astronomy_ladder` (v1) | 544 | 9 | Medellín 340, Bogotá 136, Barranquilla 68 | EN 272, ES 272 | 101 | `4b60a857cc4c18e9…` |
 
 **astronomy**: `altitude` 8, `climbing` 8, `closer_than` 8, `culmination_time` 8, `direction` 8, `elongation` 8, `higher_than` 8, `horizon` 8, `max_altitude` 8, `moon_illumination` 8, `moon_waxing` 8, `rise_side` 8, `rise_time` 8, `rises_first` 8, `separation` 8, `set_time` 8, `sets_first` 8, `sunset_time` 8
 
 **tabular**: `customer_balance` 18, `invoice_status` 18, `low_stock` 18, `order_count` 18, `period_change` 18, `period_total` 18, `top_customer` 18
 
 **astronomy_near**: `altitude_near` 8, `culmination_time_near` 8, `elongation_near` 8, `max_altitude_near` 8, `moon_illumination_near` 8, `rise_time_near` 8, `rises_first_near` 8, `separation_near` 8, `set_time_near` 8, `sets_first_near` 8, `sunset_time_near` 8
+
+**astronomy_ladder**: `altitude_near` 64, `culmination_time_near` 56, `elongation_near` 64, `max_altitude_near` 64, `moon_illumination_near` 64, `rise_time_near` 56, `separation_near` 64, `set_time_near` 56, `sunset_time_near` 56
 <!-- cielo-bench:end golden -->
 
 ## Análisis de potencia

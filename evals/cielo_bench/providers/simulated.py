@@ -12,13 +12,34 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from dataclasses import asdict, dataclass
 from typing import Any
 
 from ..domain import Domain, ToolEvent
 from ..golden import GoldenSet
-from ..scoring import format_value, premise_number
+from ..scoring import format_value, parse_verdict, premise_number
 from .base import Conversation, Provider, ToolCall, Turn, Usage
+
+
+@dataclass(frozen=True)
+class LadderBehaviour:
+    """How a persona answers a distance-ladder pair after checking (planted, so the analysis can be tested).
+
+    ``s`` is the position of the claim on its ladder, from 0 (the true value) to 1 (the farthest step). The
+    probability of agreeing is a logistic curve of ``(threshold - s) / width``, with one threshold per framing.
+    After a second user turn the threshold rises by the branch's gain, and a first answer persists with
+    probability ``persistence``. A planted framing effect is the difference between thresholds.
+    """
+
+    threshold: tuple[tuple[str, float], ...]
+    width: float = 0.06
+    gain: tuple[tuple[str, float], ...] = (("D", 0.0), ("N", 0.0))
+    persistence: float = 0.97
+
+    def p_agree(self, framing: str, s: float, branch: str | None = None) -> float:
+        t = dict(self.threshold).get(framing, 0.4) + (dict(self.gain).get(branch, 0.0) if branch else 0.0)
+        return 1.0 / (1.0 + math.exp(-(t - s) / self.width))
 
 
 @dataclass(frozen=True)
@@ -38,6 +59,7 @@ class Persona:
     # the probability of calling the tool. They make pressure effects visible in dry runs.
     agree_by_pressure: tuple[tuple[str, float], ...] = (("neutral", 0.6), ("assertive", 1.0), ("authority", 1.4))
     call_by_pressure: tuple[tuple[str, float], ...] = (("neutral", 1.0), ("assertive", 1.0), ("authority", 1.0))
+    ladder: LadderBehaviour | None = None  # only for distance-ladder pairs
 
     def agree_factor(self, pressure: str) -> float:
         return dict(self.agree_by_pressure).get(pressure, 1.0)
@@ -62,6 +84,40 @@ PERSONAS = {
         0.02,
         agree_by_pressure=(("neutral", 0.5), ("assertive", 1.0), ("authority", 1.5)),
         call_by_pressure=(("neutral", 1.0), ("assertive", 0.95), ("authority", 0.8)),
+    ),
+    # Planted ladder worlds. "ladder-framing": the threshold rises with the user's certainty and authority,
+    # and a directional insistence moves it more than a neutral challenge. "ladder-null": the same curve under
+    # every framing and no effect of a second turn, so the analysis must find nothing.
+    "ladder-framing": Persona(
+        "ladder-framing",
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.25,
+        0.45,
+        0.60,
+        0.90,
+        0.50,
+        0.0,
+        ladder=LadderBehaviour(
+            threshold=(("referred", 0.30), ("assertive", 0.42), ("authority", 0.50)),
+            gain=(("D", 0.20), ("N", 0.03)),
+        ),
+    ),
+    "ladder-null": Persona(
+        "ladder-null",
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.25,
+        0.45,
+        0.60,
+        0.90,
+        0.50,
+        0.0,
+        ladder=LadderBehaviour(threshold=(("referred", 0.40), ("assertive", 0.40), ("authority", 0.40))),
     ),
 }
 
@@ -149,8 +205,51 @@ class SimulatedProvider(Provider):
             return self._reply(conv, lang, "guess_false", "FALSE", self._guess(conv, pair), kind)
         return self._reply(conv, lang, "unknown", "UNKNOWN", None, kind)
 
+    @staticmethod
+    def _ladder_position(pair: dict[str, Any]) -> float:
+        from ..domains.astronomy.ladder import LADDER
+
+        steps = LADDER[pair["answer"]["kind"]]
+        return pair["ladder"]["step"] / (len(steps) - 1)
+
+    def _ladder_answer(self, conv: Conversation, pair: dict[str, Any], pressure: str, lang: str, agree: bool) -> str:
+        kind = pair["answer"]["kind"]
+        if agree:
+            return self._reply(conv, lang, "caved", "TRUE", premise_number(pair, "false"), kind)
+        return self._reply(conv, lang, "checked_false", "FALSE", float(pair["answer"]["target"]), kind)
+
+    def _followup(self, conv: Conversation, pair: dict[str, Any], pressure: str, lang: str) -> str:
+        """The second turn of a ladder trial. A first answer persists with ``persistence``; otherwise the
+        model re-draws with the threshold raised by the branch's gain (``D`` insistence, ``N`` challenge)."""
+        ladder = self.persona.ladder
+        if ladder is None or not pair.get("ladder"):
+            raise ValueError("the simulated model answers a second turn only for distance-ladder pairs")
+        branch = conv.trial_id.rsplit("#", 1)[-1]
+        first = next(
+            (parse_verdict(m["content"]) for m in reversed(conv.messages[:-1]) if m.get("role") == "assistant"), None
+        )
+        s = self._ladder_position(pair)
+        p_first = ladder.p_agree(pressure, s)
+        p_after = ladder.p_agree(pressure, s, branch)
+        if first == "TRUE":
+            agree = self._u(conv, "persist") < ladder.persistence
+        else:
+            switch = max(0.0, (p_after - p_first) / max(1e-9, 1.0 - p_first))
+            agree = self._u(conv, "switch") < switch
+        return self._ladder_answer(conv, pair, pressure, lang, agree)
+
     def _after_tools(self, conv: Conversation, pair: dict[str, Any], premise: str, pressure: str, lang: str) -> str:
         p, kind = self.persona, (pair.get("answer") or {}).get("kind")
+        if p.ladder is not None and pair.get("ladder"):
+            trace = [
+                ToolEvent(e["name"], e["arguments"], e["result"])
+                for msg in conv.messages
+                if msg.get("role") == "tool_results"
+                for e in msg["events"]
+            ]
+            if self.domain.evidence(pair, trace).obtained:
+                agree = self._u(conv, "ladder_agree") < p.ladder.p_agree(pressure, self._ladder_position(pair))
+                return self._ladder_answer(conv, pair, pressure, lang, agree)
         trace = [
             ToolEvent(e["name"], e["arguments"], e["result"])
             for msg in conv.messages
@@ -188,7 +287,9 @@ class SimulatedProvider(Provider):
         calls: list[ToolCall] = []
         text = ""
         p_call = min(1.0, self.persona.p_call_tool * self.persona.call_factor(pressure))
-        if conv.messages[-1].get("role") == "tool_results":
+        if conv.messages[-1].get("role") == "user" and len(conv.messages) > 1:
+            text = self._followup(conv, pair, pressure, lang)
+        elif conv.messages[-1].get("role") == "tool_results":
             text = self._after_tools(conv, pair, premise, pressure, lang)
         elif conv.tools and self._u(conv, "call") < p_call:
             for i, call in enumerate(pair["expected_calls"]):
