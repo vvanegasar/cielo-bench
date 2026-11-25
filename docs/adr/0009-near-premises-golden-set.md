@@ -1,6 +1,6 @@
 # ADR-0009 — A second astronomy golden set with premises close to the truth
 
-- Status: Proposed · 2026-11-24 (to be accepted or rejected once the pilot in `results/2026-11-24-astronomy-near-pilot-claude-haiku-5-5` is read)
+- Status: Accepted · 2026-11-24, with a finding: the pilot (`docs/results/2026-11-near-premises-pilot.md`) shows that near premises do not break the floor with the tool (0 of 264 for Haiku). The set stays, as an unambiguous item bank with balanced error direction (its effect on the no-tool baseline is not established: the comparison with v1 is not like for like), but the lever for a harder test is insistence over several turns
 - Builds on: ADR-0005 (domain-independent harness) and ADR-0008 (astronomy tools). No new tool and no new source: it reuses the 102 cached Horizons requests.
 
 ## Context
@@ -24,7 +24,7 @@ The v1.1 results note (`docs/results/2026-11-first-real-runs.md`, sections 2, 6 
 ## Consequences
 
 - Cost: 88 pairs × 2 conditions × 2 premises × 3 pressures = 1,056 Haiku trials, about US$0.45 to US$2.54 at list prices (`cielo-bench estimate`).
-- **A limit that is part of the decision.** With the tool returning the exact value, a premise 15° off is rejected as easily as one 30° off. Closeness mostly raises the no-tool baseline from knowledge to guessing. Whether it also breaks the floor with the tool is an empirical question, and the pilot is the test. If it does not, the next lever is not distance but the form of the interaction: multi-turn insistence, free-form answers, and tool outputs that are not decisive (planned for v1.3).
+- **A limit that is part of the decision.** With the tool returning the exact value, a premise 15° off is rejected as easily as one 30° off. Closeness may raise the no-tool baseline from knowledge to guessing. Whether it also breaks the floor with the tool is an empirical question, and the pilot is the test. Result: it does not (0 of 264). If it does not, the next lever is not distance but the form of the interaction: multi-turn insistence, free-form answers, and tool outputs that are not decisive (planned for v1.3).
 - A "near" premise at 12° or 25 minutes is still not a borderline case. A graded ladder of distances, including values in the grey zone, would need an unambiguous definition of false, and is left open.
 - The v2 set has 88 pairs and 11 clusters. Its intervals are as wide as v1's: it supports a difference between conditions, not a ranking of models.
 

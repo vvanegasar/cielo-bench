@@ -14,6 +14,7 @@ Toward 1.2: a harder test. The v1.1 results sat on the difficulty floor (every m
   - The direction of the error is balanced by a hash of the context (v1 almost always put the false value above the truth).
   - `rises_first_near` and `sets_first_near` only use events in the same half of the local day and 20 to 150 minutes apart, which removes the "which night" ambiguity of `sets_first` (see the results note, section 2).
   - The prompt's format examples (`52°`, `07:23`) are never a premise value, because premise values are multiples of 5. The examples of v1 (`35°`, `19:40`) could anchor an answer.
+- **Pilot of the v2 set** (Haiku 5.5, 1,056 trials, US$1.08): agree-after-check 0 of 264 with the tool, so near premises do not break the floor. Results note: `docs/results/2026-11-near-premises-pilot.md`; run in `results/2026-11-24-astronomy-near-pilot-claude-haiku-5-5/`. The next lever is multi-turn insistence (ROADMAP v1.2).
 - Tests for the new set (shape, rules, distance to the truth, balance, same half-day, example collision, offline rebuild) and for the scorer change below.
 
 ### Fixed
