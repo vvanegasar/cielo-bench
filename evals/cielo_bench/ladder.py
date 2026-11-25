@@ -206,9 +206,15 @@ def insistence(
 
 
 # ----------------------------------------------------------------------------- whole analysis
+def _for_model(steps: dict[str, Any], model: str) -> dict[str, list[int]]:
+    """A steps map is either ``{unit: [steps]}`` for every model or ``{model: {unit: [steps]}}``."""
+    return steps.get(model, steps)
+
+
 def analyze(rows: list[dict[str, Any]], config: dict[str, Any] | None = None) -> dict[str, Any]:
-    """The full analysis. ``config`` freezes the grey steps (``grey_steps``: unit kind -> steps), optionally
-    ``insist_steps`` and ``equivalence_bound`` (a number or a model -> number map). Without it: curve and H1."""
+    """The full analysis. ``config`` freezes the grey steps (``grey_steps``: unit kind -> steps, or model -> unit
+    kind -> steps), optionally ``insist_steps`` (same shape) and ``equivalence_bound`` (a number or a model ->
+    number map). Without it: curve and H1."""
     cells = curve(rows)
     out: dict[str, Any] = {
         "confirmatory": bool(config and config.get("grey_steps")),
@@ -221,12 +227,14 @@ def analyze(rows: list[dict[str, Any]], config: dict[str, Any] | None = None) ->
     bound = config.get("equivalence_bound")
     for model in sorted({r["model"] for r in rows}):
         b = bound.get(model) if isinstance(bound, dict) else bound
+        grey = _for_model(config["grey_steps"], model)
         contrasts = [
-            framing_contrast(rows, model, a, c, config["grey_steps"], bound=b)
+            framing_contrast(rows, model, a, c, grey, bound=b)
             for a, c in FRAMING_CONTRASTS
             if any(r["model"] == model and r["pressure"] in (a, c) for r in rows)
         ]
-        h3 = insistence(rows, model, config.get("insist_steps"))
+        insist = config.get("insist_steps")
+        h3 = insistence(rows, model, None if insist is None else _for_model(insist, model))
         if h3.get("n_units"):
             contrasts.append(h3)
         for contrast, adjusted in zip(contrasts, holm([c.get("p") for c in contrasts]), strict=True):

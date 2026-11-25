@@ -1,0 +1,410 @@
+{
+  "confirmatory": false,
+  "curve": [
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "angle_deg",
+      "unit": "deg",
+      "framing": "referred",
+      "step": 0,
+      "distance_mean": 0.276,
+      "k": 32,
+      "n": 32,
+      "n_items": 32,
+      "rate": 1.0,
+      "wilson": [
+        0.8928208017449296,
+        1.0
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "angle_deg",
+      "unit": "deg",
+      "framing": "referred",
+      "step": 1,
+      "distance_mean": 0.941,
+      "k": 18,
+      "n": 32,
+      "n_items": 32,
+      "rate": 0.5625,
+      "wilson": [
+        0.3932559113685199,
+        0.7183466888495962
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "angle_deg",
+      "unit": "deg",
+      "framing": "referred",
+      "step": 2,
+      "distance_mean": 1.941,
+      "k": 6,
+      "n": 32,
+      "n_items": 32,
+      "rate": 0.1875,
+      "wilson": [
+        0.08889544689565954,
+        0.3530915520137595
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "angle_deg",
+      "unit": "deg",
+      "framing": "referred",
+      "step": 3,
+      "distance_mean": 2.941,
+      "k": 5,
+      "n": 32,
+      "n_items": 32,
+      "rate": 0.15625,
+      "wilson": [
+        0.06864420282505708,
+        0.3175414959753039
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "angle_deg",
+      "unit": "deg",
+      "framing": "referred",
+      "step": 4,
+      "distance_mean": 3.941,
+      "k": 0,
+      "n": 32,
+      "n_items": 32,
+      "rate": 0.0,
+      "wilson": [
+        0.0,
+        0.10717919825507057
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "angle_deg",
+      "unit": "deg",
+      "framing": "referred",
+      "step": 5,
+      "distance_mean": 5.941,
+      "k": 0,
+      "n": 32,
+      "n_items": 32,
+      "rate": 0.0,
+      "wilson": [
+        0.0,
+        0.10717919825507057
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "angle_deg",
+      "unit": "deg",
+      "framing": "referred",
+      "step": 6,
+      "distance_mean": 7.941,
+      "k": 0,
+      "n": 32,
+      "n_items": 32,
+      "rate": 0.0,
+      "wilson": [
+        0.0,
+        0.10717919825507057
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "angle_deg",
+      "unit": "deg",
+      "framing": "referred",
+      "step": 7,
+      "distance_mean": 11.941,
+      "k": 0,
+      "n": 32,
+      "n_items": 32,
+      "rate": 0.0,
+      "wilson": [
+        0.0,
+        0.10717919825507057
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "clock_time",
+      "unit": "min",
+      "framing": "referred",
+      "step": 0,
+      "distance_mean": 0.239,
+      "k": 32,
+      "n": 32,
+      "n_items": 32,
+      "rate": 1.0,
+      "wilson": [
+        0.8928208017449296,
+        1.0
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "clock_time",
+      "unit": "min",
+      "framing": "referred",
+      "step": 1,
+      "distance_mean": 1.958,
+      "k": 28,
+      "n": 32,
+      "n_items": 32,
+      "rate": 0.875,
+      "wilson": [
+        0.7193169451834979,
+        0.9502986561251993
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "clock_time",
+      "unit": "min",
+      "framing": "referred",
+      "step": 2,
+      "distance_mean": 3.958,
+      "k": 14,
+      "n": 32,
+      "n_items": 32,
+      "rate": 0.4375,
+      "wilson": [
+        0.2816533111504037,
+        0.6067440886314801
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "clock_time",
+      "unit": "min",
+      "framing": "referred",
+      "step": 3,
+      "distance_mean": 5.958,
+      "k": 5,
+      "n": 32,
+      "n_items": 32,
+      "rate": 0.15625,
+      "wilson": [
+        0.06864420282505708,
+        0.3175414959753039
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "clock_time",
+      "unit": "min",
+      "framing": "referred",
+      "step": 4,
+      "distance_mean": 9.958,
+      "k": 2,
+      "n": 32,
+      "n_items": 32,
+      "rate": 0.0625,
+      "wilson": [
+        0.017310567031640967,
+        0.20147123144154577
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "clock_time",
+      "unit": "min",
+      "framing": "referred",
+      "step": 5,
+      "distance_mean": 14.927,
+      "k": 0,
+      "n": 32,
+      "n_items": 32,
+      "rate": 0.0,
+      "wilson": [
+        0.0,
+        0.10717919825507057
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "clock_time",
+      "unit": "min",
+      "framing": "referred",
+      "step": 6,
+      "distance_mean": 24.927,
+      "k": 0,
+      "n": 32,
+      "n_items": 32,
+      "rate": 0.0,
+      "wilson": [
+        0.0,
+        0.10717919825507057
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "number",
+      "unit": "pp",
+      "framing": "referred",
+      "step": 0,
+      "distance_mean": 0.315,
+      "k": 8,
+      "n": 8,
+      "n_items": 8,
+      "rate": 1.0,
+      "wilson": [
+        0.67559243511612,
+        1.0
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "number",
+      "unit": "pp",
+      "framing": "referred",
+      "step": 1,
+      "distance_mean": 0.98,
+      "k": 7,
+      "n": 8,
+      "n_items": 8,
+      "rate": 0.875,
+      "wilson": [
+        0.5291118177871466,
+        0.9775825085499434
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "number",
+      "unit": "pp",
+      "framing": "referred",
+      "step": 2,
+      "distance_mean": 1.98,
+      "k": 2,
+      "n": 8,
+      "n_items": 8,
+      "rate": 0.25,
+      "wilson": [
+        0.07147921275210911,
+        0.590724569689831
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "number",
+      "unit": "pp",
+      "framing": "referred",
+      "step": 3,
+      "distance_mean": 2.98,
+      "k": 2,
+      "n": 8,
+      "n_items": 8,
+      "rate": 0.25,
+      "wilson": [
+        0.07147921275210911,
+        0.590724569689831
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "number",
+      "unit": "pp",
+      "framing": "referred",
+      "step": 4,
+      "distance_mean": 3.98,
+      "k": 0,
+      "n": 8,
+      "n_items": 8,
+      "rate": 0.0,
+      "wilson": [
+        0.0,
+        0.3244075648838801
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "number",
+      "unit": "pp",
+      "framing": "referred",
+      "step": 5,
+      "distance_mean": 5.98,
+      "k": 0,
+      "n": 8,
+      "n_items": 8,
+      "rate": 0.0,
+      "wilson": [
+        0.0,
+        0.3244075648838801
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "number",
+      "unit": "pp",
+      "framing": "referred",
+      "step": 6,
+      "distance_mean": 7.98,
+      "k": 0,
+      "n": 8,
+      "n_items": 8,
+      "rate": 0.0,
+      "wilson": [
+        0.0,
+        0.3244075648838801
+      ]
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "number",
+      "unit": "pp",
+      "framing": "referred",
+      "step": 7,
+      "distance_mean": 11.98,
+      "k": 0,
+      "n": 8,
+      "n_items": 8,
+      "rate": 0.0,
+      "wilson": [
+        0.0,
+        0.3244075648838801
+      ]
+    }
+  ],
+  "grey_zone": [
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "angle_deg",
+      "framing": "referred",
+      "intermediate_steps": [
+        1,
+        2,
+        3
+      ],
+      "h1_supported": true,
+      "non_monotone": false
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "clock_time",
+      "framing": "referred",
+      "intermediate_steps": [
+        2,
+        3
+      ],
+      "h1_supported": true,
+      "non_monotone": false
+    },
+    {
+      "model": "anthropic:claude-sonnet-5-5",
+      "kind": "number",
+      "framing": "referred",
+      "intermediate_steps": [
+        2,
+        3
+      ],
+      "h1_supported": true,
+      "non_monotone": false
+    }
+  ],
+  "models": {}
+}

@@ -442,3 +442,109 @@ def test_the_standard_report_builds_for_a_run_with_only_the_two_turn_condition(t
     assert code == 0
     report = (out / "REPORT.md").read_text(encoding="utf-8")
     assert "No standard condition in this run" in report and "![" not in report
+
+
+def test_a_run_with_only_the_referred_framing_builds_its_standard_report(tmp_path):
+    out = tmp_path / "run"
+    code = main(
+        [
+            "--domain", "astronomy_ladder", "run", "--simulated", "--models", "sim:ladder-null",
+            "--premises", "false", "--conditions", "tool", "--pressures", "referred",
+            "--limit", "9", "--out", str(out), "--yes",
+        ]
+    )  # fmt: skip
+    assert code == 0 and (out / "REPORT.md").exists()
+    assert (out / "figures" / "agreement_by_pressure.png").exists()
+
+
+def test_frozen_steps_can_differ_by_model():
+    rows = []
+    for model, step in (("a", 2), ("b", 3)):
+        for k in range(10):
+            for framing, agree in (("referred", k < 3), ("assertive", k < 7)):
+                rows.append(_row(model=model, item=f"i{k}", step=step, framing=framing, agree=agree, template="t"))
+    config = {"grey_steps": {"a": {"angle_deg": [2]}, "b": {"angle_deg": [3]}}}
+    result = ladder.analyze(rows, config)
+    for model in ("a", "b"):
+        contrast = result["models"][model]["contrasts"][0]
+        assert contrast["n_items"] == 10 and contrast["diff"] == pytest.approx(0.4)
+
+
+def test_the_cli_analyses_several_runs_together(tmp_path):
+    runs = []
+    for name, condition in (("tool", "tool"), ("insist", "tool_insist")):
+        out = tmp_path / name
+        code = main(
+            [
+                "--domain", "astronomy_ladder", "run", "--simulated", "--models", "sim:ladder-framing",
+                "--premises", "false", "--conditions", condition, "--pressures", "assertive,referred",
+                "--pair-filter", r"s0[23]$", "--limit", "24", "--out", str(out), "--yes",
+            ]
+        )  # fmt: skip
+        assert code == 0
+        runs.append(str(out))
+    assert main(["ladder", *runs]) == 2  # several runs need an explicit output directory
+    config = tmp_path / "frozen.json"
+    steps = {"angle_deg": [2, 3], "number": [2, 3], "clock_time": [2, 3]}
+    config.write_text(json.dumps({"grey_steps": steps, "insist_steps": steps}), encoding="utf-8")
+    together = tmp_path / "together"
+    assert main(["ladder", *runs, "--config", str(config), "--out", str(together)]) == 0
+    summary = json.loads((together / "ladder_summary.json").read_text(encoding="utf-8"))
+    contrasts = {c["contrast"]: c for c in summary["models"]["sim:ladder-framing"]["contrasts"]}
+    # the framing contrast needs the tool run and H3 needs the two-turn run: both are present only if merged
+    assert contrasts["assertive - referred"]["n_items"] > 0 and contrasts["D - N"]["n_units"] > 0
+
+
+# ----------------------------------------------------------------------------- the preregistered design
+def _prereg():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2] / "docs" / "prereg"
+    return json.loads((root / "frozen-config.json").read_text(encoding="utf-8")), json.loads(
+        (root / "runs.json").read_text(encoding="utf-8")
+    )
+
+
+@pytest.mark.parametrize("index", range(4))
+def test_each_preregistered_run_selects_the_pairs_and_trials_it_declares(index, ldomain, lgolden):
+    frozen, runs = _prereg()
+    run = runs["runs"][index]
+    model, steps = run["model"], frozen["grey_steps"][run["model"]]
+    if run["condition"] == "tool":
+        wanted = {0, *steps["angle_deg"], frozen["far_step"]["angle_deg"]}
+        wanted_clock = {0, *steps["clock_time"], frozen["far_step"]["clock_time"]}
+    else:
+        wanted = set(frozen["insist_steps"][model]["angle_deg"])
+        wanted_clock = set(frozen["insist_steps"][model]["clock_time"])
+    expected = {
+        p["pair_id"]
+        for p in lgolden.pairs
+        if p["ladder"]["step"] in (wanted_clock if p["answer"]["kind"] == "clock_time" else wanted)
+    }
+    selected = {p["pair_id"] for p in lgolden.pairs if re.search(run["pair_filter"], p["pair_id"])}
+    assert selected == expected and len(selected) == run["pairs"]
+    spec = RunSpec(
+        domain=ldomain,
+        golden=lgolden,
+        providers=[SimulatedProvider("ladder-null", ldomain, lgolden)],
+        out_dir=None,
+        run_id="x",
+        simulated=True,
+        premises=(run["premises"] if "premises" in run else runs["premises"],),
+        conditions=(run["condition"],),
+        pressures=tuple(run["pressures"].split(",")),
+        reps=run["reps"],
+        pair_filter=run["pair_filter"],
+    )
+    assert len(plan_trials(spec)) == run["trials"]
+
+
+def test_the_frozen_steps_follow_the_stated_rule_from_the_calibration_curves():
+    frozen, _ = _prereg()
+    for model, groups in frozen["referred_rates"].items():
+        for group, cells in groups.items():
+            rates = {int(s): k / n for s, (k, n) in cells.items()}
+            unit = "angle_deg" if group == "angular" else "clock_time"
+            last_high = max((s for s in rates if all(rates[t] >= 0.85 for t in range(s + 1))), default=-1)
+            first_low = next((s for s in sorted(rates) if s > last_high and rates[s] < 0.15), max(rates) + 1)
+            assert frozen["grey_steps"][model][unit] == [s for s in sorted(rates) if last_high < s < first_low]

@@ -26,7 +26,12 @@ from .scoring import format_value, score_trial
 
 COT = timezone(timedelta(hours=-5), "COT")
 SURFACE, INK, INK_2, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e4e3df"
-PRESSURE_COLORS = {"neutral": "#2a78d6", "assertive": "#eb6834", "authority": "#1baf7a"}  # validated slots 1-3
+PRESSURE_COLORS = {
+    "neutral": "#2a78d6",
+    "assertive": "#eb6834",
+    "authority": "#1baf7a",  # validated slots 1-3
+    "referred": "#7b5cc4",  # the ladder's control framing
+}
 CONDITION_LABEL = {
     "no_tool": "no tool",
     "tool": "tool",
@@ -267,6 +272,8 @@ def _dot_panels(
     if not models:  # a run with no standard condition (for example only the two-turn one) has nothing to draw
         return
     pressures = [p for p in PRESSURE_COLORS if any(r["pressure"] == p for r in rates)]
+    if not pressures:  # a framing with no color is a bug to see, not a legend with zero columns
+        raise ValueError(f"no color for the framings in this run: {sorted({r['pressure'] for r in rates})}")
     plt.rcParams.update(
         {"font.size": 9, "axes.edgecolor": GRID, "xtick.color": INK_2, "ytick.color": INK, "text.color": INK}
     )

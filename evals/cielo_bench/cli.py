@@ -306,10 +306,15 @@ def cmd_ladder(args: argparse.Namespace) -> int:
     from .ladder import analyze, render
     from .report import score_run
 
-    _, scored, _ = score_run(args.run_dir)
+    if len(args.run_dirs) > 1 and not args.out:
+        print("several run directories need --out: the analysis is written there", file=sys.stderr)
+        return 2
+    scored: list[dict[str, Any]] = []
+    for run_dir in args.run_dirs:  # the confirmatory design is several runs (tool and two-turn, per model)
+        scored += score_run(run_dir)[1]
     config = json.loads(args.config.read_text(encoding="utf-8")) if args.config else None
     result = analyze(scored, config)
-    out = args.out or args.run_dir
+    out = args.out or args.run_dirs[0]
     out.mkdir(parents=True, exist_ok=True)
     (out / "LADDER.md").write_text(render(result), encoding="utf-8")
     (out / "ladder_summary.json").write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -491,8 +496,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", type=Path, help="output directory (default: the run directory)")
     p.set_defaults(func=cmd_report)
 
-    p = sub.add_parser("ladder", help="analyse a distance-ladder run (curve, H1; contrasts with a frozen config)")
-    p.add_argument("run_dir", type=Path)
+    p = sub.add_parser("ladder", help="analyse distance-ladder runs (curve, H1; contrasts with a frozen config)")
+    p.add_argument("run_dirs", type=Path, nargs="+", metavar="run_dir", help="one or several runs, analysed together")
     p.add_argument("--config", type=Path, help="JSON that freezes grey_steps (and insist_steps, equivalence_bound)")
     p.add_argument("--out", type=Path, help="output directory (default: the run directory)")
     p.set_defaults(func=cmd_ladder)

@@ -1,0 +1,50 @@
+{
+  "note": "The four confirmatory runs of docs/PREREGISTRATION.md, with the exact pair filters. Premises: --premises false. A test checks that each filter selects the listed pairs and that the trial counts match the plan.",
+  "premises": "false",
+  "runs": [
+    {
+      "run": 1,
+      "model": "anthropic:claude-haiku-5-5",
+      "condition": "tool",
+      "pressures": "referred,assertive,authority",
+      "reps": 3,
+      "pair_filter": "^(altitude|separation|elongation|max_altitude|moon_illumination)_near-\\d\\d-s0[01237]$|^(rise_time|set_time|culmination_time|sunset_time)_near-\\d\\d-s0[016]$",
+      "pairs": 296,
+      "trials": 2664,
+      "out": "results/2026-12-ladder-confirmatory-tool-claude-haiku-5-5"
+    },
+    {
+      "run": 2,
+      "model": "anthropic:claude-haiku-5-5",
+      "condition": "tool_insist",
+      "pressures": "assertive",
+      "reps": 3,
+      "pair_filter": "^(altitude|separation|elongation|max_altitude|moon_illumination)_near-\\d\\d-s0[17]$|^(rise_time|set_time|culmination_time|sunset_time)_near-\\d\\d-s0[16]$",
+      "pairs": 144,
+      "trials": 432,
+      "out": "results/2026-12-ladder-confirmatory-insist-claude-haiku-5-5"
+    },
+    {
+      "run": 3,
+      "model": "anthropic:claude-sonnet-5-5",
+      "condition": "tool",
+      "pressures": "referred,assertive,authority",
+      "reps": 2,
+      "pair_filter": "^(altitude|separation|elongation|max_altitude|moon_illumination)_near-\\d\\d-s0[01237]$|^(rise_time|set_time|culmination_time|sunset_time)_near-\\d\\d-s0[0236]$",
+      "pairs": 328,
+      "trials": 1968,
+      "out": "results/2026-12-ladder-confirmatory-tool-claude-sonnet-5-5"
+    },
+    {
+      "run": 4,
+      "model": "anthropic:claude-sonnet-5-5",
+      "condition": "tool_insist",
+      "pressures": "assertive",
+      "reps": 2,
+      "pair_filter": "^(altitude|separation|elongation|max_altitude|moon_illumination)_near-\\d\\d-s0[17]$|^(rise_time|set_time|culmination_time|sunset_time)_near-\\d\\d-s0[26]$",
+      "pairs": 144,
+      "trials": 288,
+      "out": "results/2026-12-ladder-confirmatory-insist-claude-sonnet-5-5"
+    }
+  ]
+}

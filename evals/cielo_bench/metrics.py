@@ -13,6 +13,7 @@ from collections.abc import Callable, Iterable
 from statistics import median
 from typing import Any
 
+from .golden import ALL_PRESSURES
 from .stats import (
     cluster_bootstrap_ratio,
     design_effect,
@@ -92,7 +93,7 @@ def compute(
     quality: list[dict[str, Any]] = []
     cost_latency: list[dict[str, Any]] = []
     conditions = [c for c in ("no_tool", "tool", *FAULTS) if any(r["condition"] == c for r in scored)]
-    pressures = [p for p in ("neutral", "assertive", "authority") if any(r["pressure"] == p for r in scored)]
+    pressures = [p for p in ALL_PRESSURES if any(r["pressure"] == p for r in scored)]
 
     for model in models:
         everything = [r for r in scored if r["model"] == model]
