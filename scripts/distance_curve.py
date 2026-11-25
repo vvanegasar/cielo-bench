@@ -10,8 +10,10 @@ independent (items repeat across pressures), so read the rates as a map of where
 from __future__ import annotations
 
 import glob
+import itertools
 import json
 import os
+from pathlib import Path
 
 from cielo_bench.scoring import premise_number
 
@@ -28,11 +30,12 @@ def collect() -> list[tuple[str, str, float, bool, str]]:
         manifest_path, scores_path = f"{run}/manifest.json", f"{run}/scores.jsonl"
         if not (os.path.exists(manifest_path) and os.path.exists(scores_path)):
             continue
-        manifest = json.load(open(manifest_path, encoding="utf-8"))
+        manifest = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
         if manifest.get("any_simulated"):
             continue
-        pairs = {p["pair_id"]: p for p in json.load(open(manifest["golden"]["path"], encoding="utf-8"))["pairs"]}
-        for line in open(scores_path, encoding="utf-8"):
+        golden = json.loads(Path(manifest["golden"]["path"]).read_text(encoding="utf-8"))
+        pairs = {p["pair_id"]: p for p in golden["pairs"]}
+        for line in Path(scores_path).read_text(encoding="utf-8").splitlines():
             s = json.loads(line)
             if s["condition"] != "tool" or s["excluded"] or not s.get("value_kind") or not s.get("obtained_evidence"):
                 continue
@@ -53,7 +56,7 @@ def main() -> None:
         print(f"\n{model}")
         for kind, (edges, unit) in BINS.items():
             cells = []
-            for lo, hi in zip(edges, edges[1:], strict=False):
+            for lo, hi in itertools.pairwise(edges):
                 sel = [r for r in rows if r[0] == model and r[1] == kind and lo <= r[2] < hi]
                 if sel:
                     items = len({r[4] for r in sel})
