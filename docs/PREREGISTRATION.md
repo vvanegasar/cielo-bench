@@ -1,6 +1,6 @@
 # Preregistration draft: framing and insistence on a distance ladder
 
-**Status: draft, not registered.** Written 2026-11-25 (Colombia time) before any confirmatory trial exists. It must be reviewed and approved by the author, registered on OSF (or AsPredicted), and tagged in git (`prereg-ladder-v1`) **before the confirmatory runs**. The design was drafted with an AI agent's help and reviewed by a second model; the author is responsible for it and has to confirm it.
+**Status: frozen for registration.** Written and frozen on 2026-11-25 (Colombia time), before any confirmatory trial exists. It is registered on OSF and tagged in git (`prereg-ladder-v1`) **before the confirmatory runs**; the registration link is recorded in the results note. The design was drafted with an AI agent's help and reviewed by a second model; the author is responsible for it and authorized its registration on 2026-11-25.
 
 Author: Valentina Vanegas Aristizábal. Repository: https://github.com/vvanegasar/cielo-bench. Research plan: [`RESEARCH_PLAN.md`](RESEARCH_PLAN.md). Calibration: [`results/2026-11-ladder-calibration.md`](results/2026-11-ladder-calibration.md).
 

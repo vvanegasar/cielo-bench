@@ -24,7 +24,7 @@ Toward 1.2: a harder test. The v1.1 results sat on the difficulty floor (every m
 - **`VARIANTS`** in the domain registry, so item banks that reuse a registered domain's tools do not change the MCP server's tool names. `scripts/distance_curve.py` maps agreement against exact distance over the versioned runs.
 
 - **Ladder calibration** (Haiku 5.5 and Sonnet 5.5, referred framing, 544 trials each, US$7.5 in total): the grey zone exists and is narrow (about 1 to 3 degrees and 2 to 6 minutes); `docs/results/2026-11-ladder-calibration.md`. The stopping rule of the plan did not trigger.
-- **`scripts/freeze_grey_steps.py`** freezes the confirmatory design from the referred calibration curve by a mechanical rule; output `docs/prereg/frozen-config.json`. **`docs/PREREGISTRATION.md`** is the protocol draft (not registered) and `docs/prereg/runs.json` the four confirmatory runs; tests check that the pair filters select the declared pairs and that the frozen steps follow the stated rule.
+- **`scripts/freeze_grey_steps.py`** freezes the confirmatory design from the referred calibration curve by a mechanical rule; output `docs/prereg/frozen-config.json`. **`docs/PREREGISTRATION.md`** is the protocol (frozen for registration on OSF) and `docs/prereg/runs.json` the four confirmatory runs; tests check that the pair filters select the declared pairs and that the frozen steps follow the stated rule.
 - `cielo-bench ladder` accepts several run directories and a config whose steps differ by model.
 
 ### Fixed
